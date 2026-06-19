@@ -101,10 +101,11 @@ function aguardarServidor(url, tentativas = 50) {
 
     // Aba 4 — Responsáveis
     await page.click('.etapa-chip[data-etapa="3"]');
-    await page.waitForSelector('input[data-campo="encarregado"]');
+    await page.waitForSelector('input[data-campo="empresaExecutora"]');
+    await page.fill('input[data-campo="empresaExecutora"]', 'Construtora XYZ');
+    await page.fill('input[data-campo="responsavelExecutora"]', 'Responsável Executora D');
     await page.fill('input[data-campo="encarregado"]', 'Encarregado A');
     await page.fill('input[data-campo="coordenador"]', 'Coordenador B');
-    await page.fill('input[data-campo="plantonista"]', 'Plantonista C');
 
     // Aba 5 — Observações
     await page.click('.etapa-chip[data-etapa="4"]');
@@ -126,6 +127,7 @@ function aguardarServidor(url, tentativas = 50) {
     checa(texto.includes('PE'), 'material no relatório');
     checa(texto.includes('Alta'), 'criticidade no relatório');
     checa(texto.includes('Cadastro não disponível'), 'justificativa no relatório');
+    checa(texto.includes('Construtora XYZ'), 'empresa executora no relatório');
     checa(texto.includes('Encarregado A'), 'responsável no relatório');
     checa(texto.includes('Escavação manual'), 'observações no relatório');
     checa(texto.includes('Evidências Fotográficas'), 'seção de evidências fotográficas');

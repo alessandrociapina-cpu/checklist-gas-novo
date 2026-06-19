@@ -249,8 +249,8 @@ async function telaInicial() {
     const visiveis = lista.filter(cl => {
       const o = cl.obra, r = cl.responsaveis, g = cl.gas;
       return !f || [o.os, o.endereco, o.municipio, o.municipioOutro, o.unidade, o.unidadeOutro,
-                    o.tipoServico, o.tipoServicoOutro, r.encarregado, r.coordenador, r.plantonista,
-                    g.responsavelDemarcacao]
+                    o.tipoServico, o.tipoServicoOutro, r.empresaExecutora, r.responsavelExecutora,
+                    r.encarregado, r.coordenador, g.responsavelDemarcacao]
         .some(v => (v || '').toString().toLowerCase().includes(f));
     });
     const alvo = document.getElementById('lista');
@@ -350,7 +350,7 @@ function etapaCompleta(etapa) {
   if (etapa.id === 'obra') return !!(o.os && o.endereco && o.municipio && o.unidade && o.tipoServico);
   if (etapa.id === 'gas') return !!(g.material && g.diametro && g.pressao && g.criticidade);
   if (etapa.id === 'seguranca') return clAtual.seguranca.every(segResolvida);
-  if (etapa.id === 'responsaveis') return !!(r.encarregado || r.coordenador || r.plantonista);
+  if (etapa.id === 'responsaveis') return !!(r.empresaExecutora || r.responsavelExecutora || r.encarregado || r.coordenador);
   if (etapa.id === 'observacoes') return (clAtual.observacoes.texto || '').trim() !== '';
   return false;
 }
