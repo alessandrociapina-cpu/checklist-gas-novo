@@ -1,0 +1,162 @@
+/* Módulo de relatório — consolida as abas e permite imprimir/salvar em PDF */
+'use strict';
+
+/* Galeria de fotos com a localização GPS de cada uma (quando registrada) */
+function galeriaFotosRel(fts, altText) {
+  return `<div class="rel-fotos">${fts.map(ft => `
+    <figure class="rel-foto-fig">
+      <img src="${ft.dataUrl}" alt="${altText}">
+      ${ft.local ? `<figcaption>📍 <a href="https://www.google.com/maps?q=${ft.local.lat},${ft.local.lon}"
+          target="_blank" rel="noopener">${ft.local.lat.toFixed(6)}, ${ft.local.lon.toFixed(6)}</a>${ft.local.precisao ? ` ±${ft.local.precisao} m` : ''}</figcaption>`
+        : `<figcaption class="sem-geo">sem localização</figcaption>`}
+    </figure>`).join('')}</div>`;
+}
+
+/* Valor de um campo para o relatório (trata "Outros" e vazio) */
+function valorCampoRel(c, dados) {
+  const v = dados[c.id];
+  if (v === '' || v === undefined || v === null) return '<span class="rel-num">—</span>';
+  if (c.outro && v === 'Outros') return esc(dados[c.outro.id] || 'Outros');
+  return esc(v);
+}
+
+function tabelaCamposRel(defArray, dados) {
+  return `<table class="rel-tabela">
+      ${defArray.map((c, idx) => `
+        <tr>
+          <td class="rel-num" style="width:28px">${idx + 1}</td>
+          <th style="width:46%">${esc(c.label)}</th>
+          <td>${valorCampoRel(c, dados)}</td>
+        </tr>`).join('')}
+    </table>`;
+}
+
+async function telaRelatorio(cl) {
+  montarTopo(`Relatório · OS ${cl.obra.os || 'sem número'}`, null, `#/form/${cl.id}/5`);
+
+  const fotos = await DB.fotosDoChecklist(cl.id);
+  const fotosPorItem = {};
+  fotos.forEach(f => { (fotosPorItem[f.itemKey] = fotosPorItem[f.itemKey] || []).push(f); });
+
+  const p = progressoChecklist(cl);
+
+  /* Verificação de segurança */
+  const linhasSeg = CHECKLIST_DEF.seguranca.map((q, i) => {
+    const d = cl.seguranca[i];
+    const just = (d.justificativa || '').trim();
+    let detalhe = '';
+    if (d.resposta === 'Não') {
+      detalhe = just
+        ? `<div class="rel-just">Justificativa: ${esc(just)}</div>`
+        : `<div class="rel-just rel-just-pend">⚠ RESPOSTA "NÃO" — SEM JUSTIFICATIVA</div>`;
+    }
+    const cls = d.resposta === 'Sim' ? 'ok-sim' : (d.resposta === 'Não' ? 'ok-nao' : '');
+    return `
+      <tr>
+        <td class="rel-num centro">${i + 1}</td>
+        <td>${esc(q.pergunta)}${detalhe}</td>
+        <td class="${cls}">${esc(d.resposta) || '—'}</td>
+      </tr>`;
+  }).join('');
+
+  /* Evidências fotográficas — legenda por campo (segurança e observações) */
+  const gruposFoto = [
+    ...CHECKLIST_DEF.seguranca.map(q => ({ key: `seg:${q.id}`, rotulo: q.pergunta })),
+    { key: 'obs', rotulo: 'Observações da obra' }
+  ];
+  const evidencias = gruposFoto.map(grp => {
+    const fts = fotosPorItem[grp.key] || [];
+    if (!fts.length) return '';
+    return `<div class="rel-foto-rotulo">${esc(grp.rotulo)}</div>
+      ${galeriaFotosRel(fts, esc(grp.rotulo))}`;
+  }).join('');
+
+  const obs = (cl.observacoes.texto || '').trim();
+
+  $view().innerHTML = `
+    <div class="acoes-relatorio">
+      <button class="btn btn-primario" id="btn-pdf">🖨 Gerar PDF (Imprimir / Salvar)</button>
+      <button class="btn btn-secundario" id="btn-compartilhar">📤 Compartilhar</button>
+    </div>
+    <div class="relatorio" id="relatorio">
+      <div class="rel-cabecalho">
+        <h2>${esc(CHECKLIST_DEF.titulo)}</h2>
+        <div class="rel-meta">OS ${esc(cl.obra.os) || '—'} · ${esc(municipioExibicao(cl.obra)) || '—'}
+          · ${esc(unidadeExibicao(cl.obra)) || '—'} · Gerado em ${new Date().toLocaleString('pt-BR')}</div>
+      </div>
+
+      <div class="rel-resumo">
+        <div class="cartao-resumo">
+          <div class="valor ${p.pct === 100 && !p.pend ? 'completo' : ''}">${p.pct}%</div>
+          <div class="desc">Verificações</div>
+        </div>
+        <div class="cartao-resumo">
+          <div class="valor">${p.ok}/${p.total}</div>
+          <div class="desc">Respondidas</div>
+        </div>
+        <div class="cartao-resumo">
+          <div class="valor ${p.pend ? 'pendente-num' : 'completo'}">${p.pend}</div>
+          <div class="desc">Sem justificativa</div>
+        </div>
+        <div class="cartao-resumo">
+          <div class="valor">${fotos.length}</div>
+          <div class="desc">Fotos</div>
+        </div>
+        <div class="cartao-resumo">
+          <div class="valor">${esc(cl.gas.criticidade) || '—'}</div>
+          <div class="desc">Criticidade</div>
+        </div>
+      </div>
+
+      <div class="rel-secao">
+        <h3>Dados da Obra</h3>
+        ${tabelaCamposRel(CHECKLIST_DEF.obra, cl.obra)}
+      </div>
+
+      <div class="rel-secao">
+        <h3>Informações da Rede de Gás</h3>
+        ${tabelaCamposRel(CHECKLIST_DEF.gas, cl.gas)}
+      </div>
+
+      <div class="rel-secao">
+        <h3>Verificação de Segurança <span style="float:right">${p.ok}/${p.total}</span></h3>
+        <table class="rel-tabela">
+          <tr><th style="width:24px">#</th><th>Pergunta</th><th style="width:64px">Resposta</th></tr>
+          ${linhasSeg}
+        </table>
+      </div>
+
+      <div class="rel-secao">
+        <h3>Responsáveis</h3>
+        ${tabelaCamposRel(CHECKLIST_DEF.responsaveis, cl.responsaveis)}
+      </div>
+
+      <div class="rel-secao">
+        <h3>Observações</h3>
+        ${obs ? `<p class="rel-obs">${esc(obs)}</p>` : `<p class="rel-num">Sem observações.</p>`}
+      </div>
+
+      <div class="rel-secao">
+        <h3>Evidências Fotográficas</h3>
+        ${evidencias || `<p class="rel-num">Nenhuma foto anexada.</p>`}
+      </div>
+    </div>`;
+
+  document.getElementById('btn-pdf').onclick = () => window.print();
+
+  document.getElementById('btn-compartilhar').onclick = async () => {
+    const resumo =
+      `${CHECKLIST_DEF.titulo}\n` +
+      `OS: ${cl.obra.os || '—'} | ${cl.obra.endereco || ''} - ${municipioExibicao(cl.obra) || ''}\n` +
+      `Unidade: ${unidadeExibicao(cl.obra) || '—'} | Tipo de serviço: ${tipoServicoExibicao(cl.obra) || '—'}\n` +
+      `Criticidade: ${cl.gas.criticidade || '—'} | Verificações: ${p.ok}/${p.total} (${p.pct}%)` +
+      (p.pend ? ` | ⚠ ${p.pend} sem justificativa` : '') + '\n' +
+      `Encarregado Sabesp: ${cl.responsaveis.encarregado || '—'} | Coordenador Sabesp: ${cl.responsaveis.coordenador || '—'}`;
+    if (navigator.share) {
+      try { await navigator.share({ title: `Checklist Gás - OS ${cl.obra.os || ''}`, text: resumo }); } catch { /* cancelado */ }
+    } else {
+      await navigator.clipboard.writeText(resumo);
+      alert('Resumo copiado para a área de transferência.');
+    }
+  };
+}
