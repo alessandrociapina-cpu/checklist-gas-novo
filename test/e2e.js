@@ -138,6 +138,14 @@ function aguardarServidor(url, tentativas = 50) {
     const rotulos = await page.$$eval('#relatorio .rel-foto-rotulo', els => els.map(e => e.textContent.trim()));
     checa(rotulos.some(r => r.includes('Interferências localizadas')), 'legenda do campo na evidência');
 
+    // Nome do PDF baseado no endereço da obra (intercepta window.print)
+    const tituloPdf = await page.evaluate(() => new Promise(resolve => {
+      window.print = () => resolve(document.title);
+      document.getElementById('btn-pdf').click();
+    }));
+    checa(tituloPdf.includes('Rua das Flores, 100'), 'nome do PDF inclui o endereço da obra');
+    checa(tituloPdf.includes('OS 123456'), 'nome do PDF inclui a OS');
+
     // Busca na tela inicial + persistência
     await page.goto(BASE);
     await page.waitForSelector('.cartao-checklist');
