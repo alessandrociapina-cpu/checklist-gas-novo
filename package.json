@@ -1,0 +1,15 @@
+{
+  "name": "checklist-gas-novo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Ferramentas de desenvolvimento/validação do PWA Checklist Gás (o app em si não tem dependências de runtime).",
+  "scripts": {
+    "check": "for f in js/*.js sw.js; do node --check \"$f\"; done",
+    "estrutura": "node test/estrutura.js",
+    "e2e": "node test/e2e.js",
+    "test": "node test/estrutura.js && node test/e2e.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.0"
+  }
+}

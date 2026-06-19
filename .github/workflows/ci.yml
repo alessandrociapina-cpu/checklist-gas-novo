@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'claude/**']
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Sintaxe e estrutura
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verificar sintaxe dos arquivos JS
+        run: |
+          set -e
+          for f in js/*.js sw.js test/*.js; do
+            node --check "$f"
+            echo "OK: $f"
+          done
+      - name: Validação estrutural (sw.js / index.html)
+        run: node test/estrutura.js
+
+  e2e:
+    name: Teste de ponta a ponta (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar dependências de desenvolvimento
+        run: npm install
+      - name: Instalar navegador Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Executar teste de ponta a ponta
+        run: node test/e2e.js

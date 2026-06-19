@@ -51,10 +51,16 @@ em campo). JavaScript puro, dados locais no aparelho.
 
 ## Validação
 
-Sem suíte de testes no repositório; validar com teste de ponta a ponta usando o Playwright
-global (`/opt/node22/lib/node_modules/playwright`) contra `python3 -m http.server`: criar
-checklist, preencher as abas, marcar Sim/Não, anexar foto, gerar relatório e conferir o
-conteúdo, além de `node --check` em todos os `.js`. Não introduzir erros de console.
+CI no GitHub Actions (`.github/workflows/ci.yml`), em todo push/PR, com dois jobs:
+- **lint**: `node --check` em todos os `.js` + `node test/estrutura.js` (confere que o cache do
+  `sw.js` e as referências do `index.html` apontam para arquivos existentes, e que todo script do
+  `index.html` está no cache do service worker).
+- **e2e**: `node test/e2e.js` — Playwright (Chromium) sobe seu próprio `python3 -m http.server`,
+  cria checklist, preenche as abas, marca Sim/Não, anexa foto, gera o relatório e confere o
+  conteúdo. Não pode haver erros de console.
+
+Localmente: `npm install` e `npm test` (ou `npm run e2e`). O app em si continua **sem
+dependências de runtime**; o `package.json` é só ferramenta de desenvolvimento/teste.
 
 ## Decisões de produto já tomadas
 
