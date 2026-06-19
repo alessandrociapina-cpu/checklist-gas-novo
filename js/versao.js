@@ -1,9 +1,16 @@
 /* Versão do aplicativo e histórico de atualizações (mais recente primeiro) */
 'use strict';
 
-const APP_VERSAO = '1.0.0';
+const APP_VERSAO = '1.1.0';
 
 const HISTORICO_VERSOES = [
+  {
+    versao: '1.1.0',
+    data: '2026-06-19',
+    itens: [
+      'Aba Responsáveis: novos campos Empresa Executora e Responsável Executora (antes de Encarregado, Coordenador e Plantonista)'
+    ]
+  },
   {
     versao: '1.0.0',
     data: '2026-06-19',
