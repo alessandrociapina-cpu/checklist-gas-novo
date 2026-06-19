@@ -1,9 +1,16 @@
 /* Versão do aplicativo e histórico de atualizações (mais recente primeiro) */
 'use strict';
 
-const APP_VERSAO = '1.1.0';
+const APP_VERSAO = '1.2.0';
 
 const HISTORICO_VERSOES = [
+  {
+    versao: '1.2.0',
+    data: '2026-06-19',
+    itens: [
+      'Ao salvar o relatório em PDF, o nome do arquivo passa a incluir o endereço da obra, o município e a OS'
+    ]
+  },
   {
     versao: '1.1.0',
     data: '2026-06-19',

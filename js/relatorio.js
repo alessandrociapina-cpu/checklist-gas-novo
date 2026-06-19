@@ -1,6 +1,35 @@
 /* Módulo de relatório — consolida as abas e permite imprimir/salvar em PDF */
 'use strict';
 
+/* Nome de arquivo sugerido ao salvar o PDF (o navegador usa o título da página).
+   Inclui o endereço da obra, o município e a OS, sem caracteres inválidos. */
+function nomeArquivoRelatorio(cl) {
+  const partes = ['Checklist Gás'];
+  const endereco = (cl.obra.endereco || '').trim();
+  if (endereco) partes.push(endereco);
+  const municipio = (municipioExibicao(cl.obra) || '').trim();
+  if (municipio) partes.push(municipio);
+  const os = (cl.obra.os || '').toString().trim();
+  if (os) partes.push('OS ' + os);
+  return partes.join(' - ')
+    .replace(/[\\/:*?"<>|]+/g, ' ')   // caracteres inválidos em nome de arquivo
+    .replace(/\s+/g, ' ')
+    .trim() || 'Checklist Gás';
+}
+
+/* Imprime/salva o PDF com um nome de arquivo baseado no endereço da obra */
+function imprimirRelatorio(cl) {
+  const tituloOriginal = document.title;
+  document.title = nomeArquivoRelatorio(cl);
+  const restaurar = () => {
+    document.title = tituloOriginal;
+    window.removeEventListener('afterprint', restaurar);
+  };
+  window.addEventListener('afterprint', restaurar);
+  setTimeout(restaurar, 60000); // garante a restauração mesmo se afterprint não disparar
+  window.print();
+}
+
 /* Galeria de fotos com a localização GPS de cada uma (quando registrada) */
 function galeriaFotosRel(fts, altText) {
   return `<div class="rel-fotos">${fts.map(ft => `
@@ -142,7 +171,7 @@ async function telaRelatorio(cl) {
       </div>
     </div>`;
 
-  document.getElementById('btn-pdf').onclick = () => window.print();
+  document.getElementById('btn-pdf').onclick = () => imprimirRelatorio(cl);
 
   document.getElementById('btn-compartilhar').onclick = async () => {
     const resumo =
