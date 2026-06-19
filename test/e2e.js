@@ -106,6 +106,7 @@ function aguardarServidor(url, tentativas = 50) {
     await page.fill('input[data-campo="responsavelExecutora"]', 'Responsável Executora D');
     await page.fill('input[data-campo="encarregado"]', 'Encarregado A');
     await page.fill('input[data-campo="coordenador"]', 'Coordenador B');
+    await page.fill('input[data-campo="plantonista"]', 'Plantonista C');
 
     // Aba 5 — Observações
     await page.click('.etapa-chip[data-etapa="4"]');

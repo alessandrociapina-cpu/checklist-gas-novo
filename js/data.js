@@ -69,7 +69,9 @@ const CHECKLIST_DEF = {
     { id: 'empresaExecutora', label: 'Empresa Executora', tipo: 'texto', placeholder: 'Nome da empresa executora' },
     { id: 'responsavelExecutora', label: 'Responsável Executora', tipo: 'texto', placeholder: 'Nome do responsável da executora' },
     { id: 'encarregado', label: 'Encarregado Sabesp', tipo: 'texto', placeholder: 'Nome do encarregado' },
-    { id: 'coordenador', label: 'Coordenador Sabesp', tipo: 'texto', placeholder: 'Nome do coordenador' }
+    { id: 'coordenador', label: 'Coordenador Sabesp', tipo: 'texto', placeholder: 'Nome do coordenador' },
+    { id: 'plantonista', label: 'Plantonista - fins de semana, feriados e período noturno',
+      tipo: 'texto', placeholder: 'Nome do plantonista' }
   ]
 };
 

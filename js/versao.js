@@ -8,8 +8,7 @@ const HISTORICO_VERSOES = [
     versao: '1.1.0',
     data: '2026-06-19',
     itens: [
-      'Aba Responsáveis: novos campos Empresa Executora e Responsável Executora',
-      'Removido o campo Plantonista da aba Responsáveis'
+      'Aba Responsáveis: novos campos Empresa Executora e Responsável Executora (antes de Encarregado, Coordenador e Plantonista)'
     ]
   },
   {
