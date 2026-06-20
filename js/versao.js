@@ -1,9 +1,17 @@
 /* Versão do aplicativo e histórico de atualizações (mais recente primeiro) */
 'use strict';
 
-const APP_VERSAO = '1.3.0';
+const APP_VERSAO = '1.4.0';
 
 const HISTORICO_VERSOES = [
+  {
+    versao: '1.4.0',
+    data: '2026-06-20',
+    itens: [
+      'Nova identidade visual: paleta verde-petróleo com destaque âmbar',
+      'Novos ícones do app, para diferenciar do check-list anterior'
+    ]
+  },
   {
     versao: '1.3.0',
     data: '2026-06-19',
