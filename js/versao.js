@@ -1,9 +1,18 @@
 /* Versão do aplicativo e histórico de atualizações (mais recente primeiro) */
 'use strict';
 
-const APP_VERSAO = '1.2.0';
+const APP_VERSAO = '1.3.0';
 
 const HISTORICO_VERSOES = [
+  {
+    versao: '1.3.0',
+    data: '2026-06-19',
+    itens: [
+      'Assinatura com o dedo na tela para Fiscal Sabesp, Responsável Executora, Encarregado, Coordenador e Plantonista',
+      'Novo campo Fiscal Sabesp no topo da aba Responsáveis',
+      'Assinaturas exibidas no relatório/PDF'
+    ]
+  },
   {
     versao: '1.2.0',
     data: '2026-06-19',

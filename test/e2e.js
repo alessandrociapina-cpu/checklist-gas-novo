@@ -101,12 +101,25 @@ function aguardarServidor(url, tentativas = 50) {
 
     // Aba 4 — Responsáveis
     await page.click('.etapa-chip[data-etapa="3"]');
-    await page.waitForSelector('input[data-campo="empresaExecutora"]');
+    await page.waitForSelector('input[data-campo="fiscal"]');
+    await page.fill('input[data-campo="fiscal"]', 'Fiscal F');
     await page.fill('input[data-campo="empresaExecutora"]', 'Construtora XYZ');
     await page.fill('input[data-campo="responsavelExecutora"]', 'Responsável Executora D');
     await page.fill('input[data-campo="encarregado"]', 'Encarregado A');
     await page.fill('input[data-campo="coordenador"]', 'Coordenador B');
     await page.fill('input[data-campo="plantonista"]', 'Plantonista C');
+
+    // Assinatura no dedo do Fiscal Sabesp (desenha no canvas e confirma)
+    await page.click('.assinatura-campo[data-assinatura="fiscal"] [data-preview]');
+    await page.waitForSelector('.modal-fundo canvas');
+    const cv = await page.locator('.modal-fundo canvas').boundingBox();
+    await page.mouse.move(cv.x + 30, cv.y + 40);
+    await page.mouse.down();
+    await page.mouse.move(cv.x + 90, cv.y + 90);
+    await page.mouse.move(cv.x + 150, cv.y + 50);
+    await page.mouse.up();
+    await page.click('.modal-fundo [data-acao="confirmar"]');
+    await page.waitForSelector('.assinatura-campo[data-assinatura="fiscal"] [data-preview] img', { timeout: 5000 });
 
     // Aba 5 — Observações
     await page.click('.etapa-chip[data-etapa="4"]');
@@ -131,6 +144,9 @@ function aguardarServidor(url, tentativas = 50) {
     checa(texto.includes('Construtora XYZ'), 'empresa executora no relatório');
     checa(texto.includes('Encarregado A'), 'responsável no relatório');
     checa(texto.includes('Escavação manual'), 'observações no relatório');
+    checa(texto.includes('Fiscal Sabesp'), 'papel Fiscal Sabesp na seção de assinaturas');
+    const numAss = await page.$$eval('#relatorio .rel-assinaturas img', els => els.length);
+    checa(numAss >= 1, 'assinatura desenhada exibida no relatório');
     checa(texto.includes('Evidências Fotográficas'), 'seção de evidências fotográficas');
 
     const numImgs = await page.$$eval('#relatorio .rel-fotos img', els => els.length);

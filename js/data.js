@@ -64,14 +64,15 @@ const CHECKLIST_DEF = {
       pergunta: 'A equipe de campo está treinada para leitura correta dos cadastros e execução segura da atividade?' }
   ],
 
-  /* Aba 4 — Responsáveis */
+  /* Aba 4 — Responsáveis (campos com assinatura: true ganham assinatura no dedo) */
   responsaveis: [
+    { id: 'fiscal', label: 'Fiscal Sabesp', tipo: 'texto', placeholder: 'Nome do fiscal', assinatura: true },
     { id: 'empresaExecutora', label: 'Empresa Executora', tipo: 'texto', placeholder: 'Nome da empresa executora' },
-    { id: 'responsavelExecutora', label: 'Responsável Executora', tipo: 'texto', placeholder: 'Nome do responsável da executora' },
-    { id: 'encarregado', label: 'Encarregado Sabesp', tipo: 'texto', placeholder: 'Nome do encarregado' },
-    { id: 'coordenador', label: 'Coordenador Sabesp', tipo: 'texto', placeholder: 'Nome do coordenador' },
+    { id: 'responsavelExecutora', label: 'Responsável Executora', tipo: 'texto', placeholder: 'Nome do responsável da executora', assinatura: true },
+    { id: 'encarregado', label: 'Encarregado Sabesp', tipo: 'texto', placeholder: 'Nome do encarregado', assinatura: true },
+    { id: 'coordenador', label: 'Coordenador Sabesp', tipo: 'texto', placeholder: 'Nome do coordenador', assinatura: true },
     { id: 'plantonista', label: 'Plantonista - fins de semana, feriados e período noturno',
-      tipo: 'texto', placeholder: 'Nome do plantonista' }
+      tipo: 'texto', placeholder: 'Nome do plantonista', assinatura: true }
   ]
 };
 
@@ -95,6 +96,9 @@ function novoChecklist() {
   const responsaveis = {};
   CHECKLIST_DEF.responsaveis.forEach(c => { responsaveis[c.id] = ''; });
 
+  const assinaturas = {};
+  CHECKLIST_DEF.responsaveis.forEach(c => { if (c.assinatura) assinaturas[c.id] = null; });
+
   return {
     id: 'cl_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
     criadoEm: new Date().toISOString(),
@@ -103,6 +107,7 @@ function novoChecklist() {
     gas,
     seguranca,
     responsaveis,
+    assinaturas,
     observacoes: { texto: '' }
   };
 }
@@ -125,6 +130,8 @@ function migrarChecklist(cl) {
   });
   cl.responsaveis = cl.responsaveis || {};
   CHECKLIST_DEF.responsaveis.forEach(c => { if (cl.responsaveis[c.id] === undefined) cl.responsaveis[c.id] = ''; });
+  cl.assinaturas = cl.assinaturas || {};
+  CHECKLIST_DEF.responsaveis.forEach(c => { if (c.assinatura && cl.assinaturas[c.id] === undefined) cl.assinaturas[c.id] = null; });
   if (!cl.observacoes) cl.observacoes = { texto: '' };
   if (cl.observacoes.texto === undefined) cl.observacoes.texto = '';
   return cl;

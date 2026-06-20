@@ -49,6 +49,20 @@ function valorCampoRel(c, dados) {
   return esc(v);
 }
 
+/* Assinaturas dos responsáveis (campos com assinatura) para o relatório */
+function assinaturasRel(cl) {
+  const assinaturas = cl.assinaturas || {};
+  return CHECKLIST_DEF.responsaveis.filter(c => c.assinatura).map(c => {
+    const img = assinaturas[c.id];
+    const nome = cl.responsaveis[c.id];
+    return `<div class="rel-ass">
+      ${img ? `<img src="${img}" alt="Assinatura">` : `<div class="pendente">Pendente</div>`}
+      <div class="nome">${esc(nome) || '&nbsp;'}</div>
+      <div class="papel">${esc(c.label)}</div>
+    </div>`;
+  }).join('');
+}
+
 function tabelaCamposRel(defArray, dados) {
   return `<table class="rel-tabela">
       ${defArray.map((c, idx) => `
@@ -158,6 +172,11 @@ async function telaRelatorio(cl) {
       <div class="rel-secao">
         <h3>Responsáveis</h3>
         ${tabelaCamposRel(CHECKLIST_DEF.responsaveis, cl.responsaveis)}
+      </div>
+
+      <div class="rel-secao">
+        <h3>Assinaturas</h3>
+        <div class="rel-assinaturas">${assinaturasRel(cl)}</div>
       </div>
 
       <div class="rel-secao">

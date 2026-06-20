@@ -27,6 +27,7 @@ em campo). JavaScript puro, dados locais no aparelho.
 | `js/versao.js` | `APP_VERSAO` e `HISTORICO_VERSOES` (changelog do selo de versão) |
 | `js/data.js` | **fonte única da definição do checklist** (abas, campos, opções) + `novoChecklist()`, `migrarChecklist()`, `progressoChecklist()` |
 | `js/db.js` | persistência em IndexedDB (DB `checklist-gas-novo`, stores `checklists` e `fotos`) |
+| `js/assinatura.js` | modal de captura de assinatura no dedo (canvas) — `capturarAssinatura()` |
 | `js/app.js` | roteador por hash (`#/`, `#/form/:id/:etapa`, `#/relatorio/:id`), telas, autosave |
 | `js/relatorio.js` | relatório consolidado + evidências fotográficas; PDF via `window.print()` |
 | `sw.js` | service worker cache-first (`CACHE = 'checklist-gas-novo-vN'`) |
@@ -48,6 +49,9 @@ em campo). JavaScript puro, dados locais no aparelho.
    JSON e checklists antigos precisam continuar abrindo). IDs de campos existentes não mudam.
 6. **Fotos** são vinculadas por `itemKey` no store `fotos`: `seg:<idPergunta>` para a verificação
    de segurança e `obs` para as observações.
+7. **Assinaturas no dedo**: campos de `responsaveis` com `assinatura: true` ganham um canvas; a
+   imagem (dataURL PNG) fica em `cl.assinaturas[<idCampo>]` (dentro do próprio checklist, vai no
+   backup JSON). O relatório exibe a seção Assinaturas a partir desses campos.
 
 ## Validação
 

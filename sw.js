@@ -1,7 +1,7 @@
 /* Service worker — cache do app para funcionamento 100% offline */
 'use strict';
 
-const CACHE = 'checklist-gas-novo-v3';
+const CACHE = 'checklist-gas-novo-v4';
 const ARQUIVOS = [
   './',
   './index.html',
@@ -10,6 +10,7 @@ const ARQUIVOS = [
   './js/versao.js',
   './js/data.js',
   './js/db.js',
+  './js/assinatura.js',
   './js/relatorio.js',
   './js/app.js',
   './icons/icon-192.png',
