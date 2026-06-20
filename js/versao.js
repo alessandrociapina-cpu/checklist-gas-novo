@@ -1,9 +1,16 @@
 /* Versão do aplicativo e histórico de atualizações (mais recente primeiro) */
 'use strict';
 
-const APP_VERSAO = '1.6.0';
+const APP_VERSAO = '1.7.0';
 
 const HISTORICO_VERSOES = [
+  {
+    versao: '1.7.0',
+    data: '2026-06-20',
+    itens: [
+      'Ícone do app agora exibe o texto "Check-list Gás" abaixo do símbolo Sabesp'
+    ]
+  },
   {
     versao: '1.6.0',
     data: '2026-06-20',

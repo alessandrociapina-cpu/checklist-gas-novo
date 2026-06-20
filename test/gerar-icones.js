@@ -1,6 +1,7 @@
 /* Gera os ícones do PWA (192 e 512) com o símbolo do logo Sabesp em branco sobre
-   fundo azul Sabesp, via Chromium/Playwright. O logo é embutido como dataURL e
-   recolorido para branco (brightness(0) invert(1)); a palavra "sabesp" é recortada.
+   fundo azul Sabesp e o texto "Check-list Gás" embaixo, via Chromium/Playwright.
+   O logo é embutido como dataURL e recolorido para branco (brightness(0) invert(1));
+   a palavra "sabesp" é recortada.
    Uso: NODE_PATH=/opt/node22/lib/node_modules node test/gerar-icones.js */
 'use strict';
 
@@ -17,17 +18,19 @@ const SIMBOLO_FRAC = 0.78; // fração da altura do arquivo ocupada pelo símbol
 const AZUL = '#0083c1';
 
 function html(size) {
-  const alvo = size * 0.60;                       // tamanho do símbolo dentro do ícone
+  const alvo = size * 0.40;                       // tamanho do símbolo (menor p/ caber o texto)
   const simW = LOGO_W, simH = LOGO_H * SIMBOLO_FRAC;
   let dispH = alvo, dispW = simW / simH * dispH;
   if (dispW > alvo) { dispW = alvo; dispH = simH / simW * dispW; }
   const escala = dispW / simW;
   const imgW = LOGO_W * escala, imgH = LOGO_H * escala;
+  const fonte = Math.round(size * 0.135);
   return `<!doctype html><html><body style="margin:0;padding:0">
-    <div style="width:${size}px;height:${size}px;background:${AZUL};border-radius:${Math.round(size * 0.22)}px;display:flex;align-items:center;justify-content:center;overflow:hidden">
+    <div style="width:${size}px;height:${size}px;background:${AZUL};border-radius:${Math.round(size * 0.22)}px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:${Math.round(size * 0.05)}px;overflow:hidden;font-family:system-ui,'Segoe UI',Arial,sans-serif">
       <div style="width:${dispW}px;height:${dispH}px;overflow:hidden">
         <img src="${LOGO}" style="width:${imgW}px;height:${imgH}px;display:block;filter:brightness(0) invert(1)">
       </div>
+      <div style="color:#fff;font-weight:700;font-size:${fonte}px;line-height:1.05;text-align:center;max-width:${Math.round(size * 0.86)}px;letter-spacing:-0.01em">Check-list Gás</div>
     </div></body></html>`;
 }
 
