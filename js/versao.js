@@ -1,9 +1,17 @@
 /* Versão do aplicativo e histórico de atualizações (mais recente primeiro) */
 'use strict';
 
-const APP_VERSAO = '1.4.0';
+const APP_VERSAO = '1.5.0';
 
 const HISTORICO_VERSOES = [
+  {
+    versao: '1.5.0',
+    data: '2026-06-20',
+    itens: [
+      'Reforço de segurança: Content-Security-Policy, validação de imagens e escape reforçado',
+      'Proteção contra backup JSON malicioso (anti-XSS na restauração)'
+    ]
+  },
   {
     versao: '1.4.0',
     data: '2026-06-20',

@@ -30,15 +30,25 @@ function imprimirRelatorio(cl) {
   window.print();
 }
 
-/* Galeria de fotos com a localização GPS de cada uma (quando registrada) */
+/* Galeria de fotos com a localização GPS de cada uma (quando registrada).
+   src é validado (imagemSegura) e as coordenadas são coagidas a número para evitar
+   injeção/erros vindos de um backup restaurado. */
 function galeriaFotosRel(fts, altText) {
-  return `<div class="rel-fotos">${fts.map(ft => `
+  const alt = esc(altText);
+  return `<div class="rel-fotos">${fts.map(ft => {
+    const src = imagemSegura(ft.dataUrl);
+    const lat = Number(ft.local && ft.local.lat);
+    const lon = Number(ft.local && ft.local.lon);
+    const prec = Number(ft.local && ft.local.precisao);
+    const temGeo = Number.isFinite(lat) && Number.isFinite(lon);
+    return `
     <figure class="rel-foto-fig">
-      <img src="${ft.dataUrl}" alt="${altText}">
-      ${ft.local ? `<figcaption>📍 <a href="https://www.google.com/maps?q=${ft.local.lat},${ft.local.lon}"
-          target="_blank" rel="noopener">${ft.local.lat.toFixed(6)}, ${ft.local.lon.toFixed(6)}</a>${ft.local.precisao ? ` ±${ft.local.precisao} m` : ''}</figcaption>`
+      <img src="${src}" alt="${alt}">
+      ${temGeo ? `<figcaption>📍 <a href="https://www.google.com/maps?q=${lat},${lon}"
+          target="_blank" rel="noopener noreferrer">${lat.toFixed(6)}, ${lon.toFixed(6)}</a>${Number.isFinite(prec) ? ` ±${prec} m` : ''}</figcaption>`
         : `<figcaption class="sem-geo">sem localização</figcaption>`}
-    </figure>`).join('')}</div>`;
+    </figure>`;
+  }).join('')}</div>`;
 }
 
 /* Valor de um campo para o relatório (trata "Outros" e vazio) */
@@ -55,8 +65,9 @@ function assinaturasRel(cl) {
   return CHECKLIST_DEF.responsaveis.filter(c => c.assinatura).map(c => {
     const img = assinaturas[c.id];
     const nome = cl.responsaveis[c.id];
+    const src = imagemSegura(img);
     return `<div class="rel-ass">
-      ${img ? `<img src="${img}" alt="Assinatura">` : `<div class="pendente">Pendente</div>`}
+      ${src ? `<img src="${src}" alt="Assinatura">` : `<div class="pendente">Pendente</div>`}
       <div class="nome">${esc(nome) || '&nbsp;'}</div>
       <div class="papel">${esc(c.label)}</div>
     </div>`;
@@ -111,7 +122,7 @@ async function telaRelatorio(cl) {
     const fts = fotosPorItem[grp.key] || [];
     if (!fts.length) return '';
     return `<div class="rel-foto-rotulo">${esc(grp.rotulo)}</div>
-      ${galeriaFotosRel(fts, esc(grp.rotulo))}`;
+      ${galeriaFotosRel(fts, grp.rotulo)}`;
   }).join('');
 
   const obs = (cl.observacoes.texto || '').trim();

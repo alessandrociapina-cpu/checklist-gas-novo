@@ -80,6 +80,13 @@ function itemSegurancaVazio() {
   return { resposta: '', justificativa: '' };
 }
 
+/* Segurança: só aceita dataURL de imagem em base64. Evita XSS por "src" forjado
+   em backups restaurados (ex.: valor com aspas + onerror). Retorna '' se inválido. */
+function imagemSegura(dataUrl) {
+  const s = String(dataUrl == null ? '' : dataUrl);
+  return /^data:image\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=\s]+$/.test(s) ? s : '';
+}
+
 /* Cria um checklist vazio */
 function novoChecklist() {
   const obra = {};

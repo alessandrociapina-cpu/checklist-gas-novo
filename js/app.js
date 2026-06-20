@@ -102,12 +102,20 @@ function formatarCoord(local) {
 function ligarFotos(wrap, itemKey, aoMudar) {
   async function render() {
     const fotos = await DB.fotosDoItem(clAtual.id, itemKey);
-    wrap.innerHTML = fotos.map(f => `
+    wrap.innerHTML = fotos.map(f => {
+      // src validado e id escapado: dados podem vir de um backup restaurado
+      const src = imagemSegura(f.dataUrl);
+      const lat = Number(f.local && f.local.lat);
+      const lon = Number(f.local && f.local.lon);
+      const prec = Number(f.local && f.local.precisao);
+      const temGeo = Number.isFinite(lat) && Number.isFinite(lon);
+      return `
       <div class="foto-mini">
-        <img src="${f.dataUrl}" alt="Evidência">
-        ${f.local ? `<span class="geo-badge" title="📍 ${f.local.lat.toFixed(6)}, ${f.local.lon.toFixed(6)} (±${f.local.precisao} m)">📍</span>` : ''}
-        <button class="rm" data-foto="${f.id}" aria-label="Remover foto">✕</button>
-      </div>`).join('') +
+        <img src="${src}" alt="Evidência">
+        ${temGeo ? `<span class="geo-badge" title="📍 ${lat.toFixed(6)}, ${lon.toFixed(6)}${Number.isFinite(prec) ? ` (±${prec} m)` : ''}">📍</span>` : ''}
+        <button class="rm" data-foto="${esc(f.id)}" aria-label="Remover foto">✕</button>
+      </div>`;
+    }).join('') +
       `<button class="btn-foto" data-fonte="camera"><span class="cam">📷</span>Câmera</button>
        <button class="btn-foto" data-fonte="galeria"><span class="cam">🖼️</span>Galeria</button>`;
     if (aoMudar) aoMudar(fotos.length);
@@ -264,7 +272,7 @@ async function telaInicial() {
       const p = progressoChecklist(cl);
       const completo = p.pct === 100 && !p.pend;
       return `
-      <div class="cartao-checklist ${completo ? 'concluido' : ''}" data-id="${cl.id}">
+      <div class="cartao-checklist ${completo ? 'concluido' : ''}" data-id="${esc(cl.id)}">
         <div class="linha1">
           <span class="os">OS ${esc(cl.obra.os) || 'sem número'}</span>
           <span class="data">${fmtData(cl.criadoEm)}</span>
@@ -439,7 +447,7 @@ function htmlAssinaturaCampo(c) {
   const img = (clAtual.assinaturas || {})[c.id];
   return `<div class="assinatura-campo" data-assinatura="${c.id}">
       <label class="rotulo rotulo-fotos">Assinatura</label>
-      <div class="assinatura-preview" data-preview>${img ? `<img src="${img}" alt="Assinatura">` : 'Toque para assinar'}</div>
+      <div class="assinatura-preview" data-preview>${img ? `<img src="${imagemSegura(img)}" alt="Assinatura">` : 'Toque para assinar'}</div>
       ${img ? `<div class="assinatura-acoes"><button class="btn btn-perigo" data-acao="apagar">Apagar assinatura</button></div>` : ''}
     </div>`;
 }
