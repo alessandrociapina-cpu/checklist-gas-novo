@@ -368,6 +368,57 @@ main { padding: 14px 12px calc(env(safe-area-inset-bottom, 0px) + 90px); max-wid
 }
 .btn-foto .cam { font-size: 1.4rem; }
 
+/* ---------- Assinatura no dedo ---------- */
+.assinatura-campo { margin-top: 10px; }
+.assinatura-preview {
+  width: 100%;
+  height: 110px;
+  border: 1.5px dashed var(--borda);
+  border-radius: 8px;
+  background: #fafbfc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--texto-suave);
+  font-size: .85rem;
+  cursor: pointer;
+  overflow: hidden;
+}
+.assinatura-preview img { max-width: 100%; max-height: 100%; }
+.assinatura-acoes { display: flex; gap: 8px; margin-top: 8px; }
+.assinatura-acoes .btn { flex: 1; padding: 9px; font-size: .82rem; }
+
+/* Modal de assinatura */
+.modal-fundo {
+  position: fixed;
+  inset: 0;
+  background: rgba(13, 43, 69, .65);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.modal {
+  background: #fff;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 560px;
+  padding: 16px;
+}
+.modal h3 { margin: 0 0 10px; color: var(--azul); font-size: 1rem; }
+.modal canvas {
+  width: 100%;
+  height: 220px;
+  border: 1.5px solid var(--borda);
+  border-radius: 8px;
+  background: #fff;
+  touch-action: none;
+  display: block;
+}
+.modal .acoes-modal { display: flex; gap: 10px; margin-top: 12px; }
+.modal .acoes-modal .btn { flex: 1; }
+
 /* ---------- Aba relatório PDF ---------- */
 .rel-intro p { font-size: .9rem; color: var(--texto); line-height: 1.45; margin: 0 0 12px; }
 .rel-intro .rel-aviso-pend { color: var(--vermelho); font-weight: 600; }
@@ -452,6 +503,22 @@ td.ok-nao { color: var(--vermelho); font-weight: 700; text-align: center; }
 .rel-foto-fig figcaption.sem-geo { font-style: italic; }
 .rel-foto-rotulo { font-size: .72rem; color: var(--texto-suave); margin: 10px 0 2px; font-weight: 600; }
 
+.rel-assinaturas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.rel-ass {
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+  min-height: 110px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.rel-ass img { max-height: 64px; object-fit: contain; margin: 0 auto; }
+.rel-ass .nome { font-size: .8rem; font-weight: 700; border-top: 1px solid var(--borda); padding-top: 6px; margin-top: 6px; }
+.rel-ass .papel { font-size: .7rem; color: var(--texto-suave); }
+.rel-ass .pendente { color: var(--texto-suave); font-size: .78rem; font-style: italic; margin-bottom: 12px; }
+
 .acoes-relatorio { display: flex; gap: 10px; margin: 14px 0; }
 .acoes-relatorio .btn { flex: 1; }
 
@@ -462,7 +529,11 @@ td.ok-nao { color: var(--vermelho); font-weight: 700; text-align: center; }
   main { padding: 0; max-width: none; }
   .relatorio { box-shadow: none; border-radius: 0; padding: 0; }
   .rel-secao { break-inside: avoid; }
-  .rel-foto-fig { break-inside: avoid; }
+  .rel-foto-fig, .rel-ass { break-inside: avoid; }
   .rel-secao h3 { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   table.rel-tabela th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
+@media (min-width: 600px) {
+  .rel-assinaturas { grid-template-columns: repeat(3, 1fr); }
 }

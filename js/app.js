@@ -11,6 +11,7 @@ const ETAPAS = [
 ];
 
 let clAtual = null;          // checklist em edição
+let etapaAtualIdx = 0;       // índice da aba aberta (para re-render após assinar)
 let salvarTimer = null;
 
 const $view = () => document.getElementById('view');
@@ -357,6 +358,7 @@ function etapaCompleta(etapa) {
 
 function telaFormulario(etapaIdx) {
   etapaIdx = Math.min(etapaIdx, ETAPAS.length - 1);
+  etapaAtualIdx = etapaIdx;
   const etapa = ETAPAS[etapaIdx];
   montarTopo(`OS ${clAtual.obra.os || 'sem número'}`, etapa.rotulo, '#/');
 
@@ -433,12 +435,22 @@ function htmlControleCampo(c, dados) {
   return `<input type="text" data-campo="${c.id}" value="${esc(v)}" placeholder="${esc(c.placeholder || '')}">`;
 }
 
+function htmlAssinaturaCampo(c) {
+  const img = (clAtual.assinaturas || {})[c.id];
+  return `<div class="assinatura-campo" data-assinatura="${c.id}">
+      <label class="rotulo rotulo-fotos">Assinatura</label>
+      <div class="assinatura-preview" data-preview>${img ? `<img src="${img}" alt="Assinatura">` : 'Toque para assinar'}</div>
+      ${img ? `<div class="assinatura-acoes"><button class="btn btn-perigo" data-acao="apagar">Apagar assinatura</button></div>` : ''}
+    </div>`;
+}
+
 function htmlEtapaCampos(titulo, defArray, dados) {
   return `<div class="secao-titulo">${esc(titulo)}</div>` +
     defArray.map((c, idx) => `<div class="campo">
         <label class="rotulo"><span class="num">${idx + 1}.</span>${esc(c.label)}</label>
         ${htmlControleCampo(c, dados)}
         ${c.hint ? `<div class="hint">${esc(c.hint)}</div>` : ''}
+        ${c.assinatura ? htmlAssinaturaCampo(c) : ''}
       </div>`).join('');
 }
 
@@ -485,6 +497,27 @@ function ligarEtapaCampos(defArray, dados) {
       } else {
         alert('Não foi possível obter a localização. Verifique se o GPS e a permissão de localização estão ativos.');
       }
+    };
+  });
+  $view().querySelectorAll('.assinatura-campo[data-assinatura]').forEach(el => {
+    const id = el.dataset.assinatura;
+    const def = defArray.find(c => c.id === id);
+    const label = def ? def.label : 'Assinatura';
+
+    el.querySelector('[data-preview]').onclick = async () => {
+      const img = await capturarAssinatura(label);
+      if (img) {
+        clAtual.assinaturas[id] = img;
+        await DB.salvarChecklist(clAtual);
+        telaFormulario(etapaAtualIdx);
+      }
+    };
+    const apagar = el.querySelector('[data-acao=apagar]');
+    if (apagar) apagar.onclick = async () => {
+      if (!confirm(`Apagar a assinatura de ${label}?`)) return;
+      clAtual.assinaturas[id] = null;
+      await DB.salvarChecklist(clAtual);
+      telaFormulario(etapaAtualIdx);
     };
   });
 }
