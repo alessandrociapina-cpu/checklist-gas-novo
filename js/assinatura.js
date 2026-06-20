@@ -27,7 +27,7 @@ function capturarAssinatura(titulo) {
     ctx.lineWidth = 2.2;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#0f5e57';
+    ctx.strokeStyle = '#0083c1';
 
     let desenhando = false;
     let desenhou = false;

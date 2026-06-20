@@ -1,9 +1,16 @@
 /* Versão do aplicativo e histórico de atualizações (mais recente primeiro) */
 'use strict';
 
-const APP_VERSAO = '1.5.0';
+const APP_VERSAO = '1.6.0';
 
 const HISTORICO_VERSOES = [
+  {
+    versao: '1.6.0',
+    data: '2026-06-20',
+    itens: [
+      'Identidade visual Sabesp: paleta azul Sabesp e logo na tela inicial, no relatório e no ícone do app'
+    ]
+  },
   {
     versao: '1.5.0',
     data: '2026-06-20',

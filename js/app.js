@@ -244,6 +244,7 @@ async function telaInicial() {
   const lista = (await DB.listarChecklists()).map(migrarChecklist);
 
   $view().innerHTML = `
+    <div class="logo-sabesp"><img src="icons/sabesp-logo.png" alt="Sabesp"></div>
     <input type="search" class="busca" id="busca" placeholder="Buscar por OS, endereço ou responsável…">
     <div id="lista"></div>
     <div class="acoes-home">

@@ -1,7 +1,7 @@
 /* Service worker — cache do app para funcionamento 100% offline */
 'use strict';
 
-const CACHE = 'checklist-gas-novo-v6';
+const CACHE = 'checklist-gas-novo-v7';
 const ARQUIVOS = [
   './',
   './index.html',
@@ -14,7 +14,8 @@ const ARQUIVOS = [
   './js/relatorio.js',
   './js/app.js',
   './icons/icon-192.png',
-  './icons/icon-512.png'
+  './icons/icon-512.png',
+  './icons/sabesp-logo.png'
 ];
 
 self.addEventListener('install', e => {
