@@ -170,6 +170,35 @@ function aguardarServidor(url, tentativas = 50) {
     const cartoes = await page.$$('.cartao-checklist');
     checa(cartoes.length === 1, 'busca por OS retorna 1 resultado');
 
+    // --- Segurança: validador de imagem rejeita src forjado, aceita dataURL válido ---
+    const sanit = await page.evaluate(() => ({
+      forjado: imagemSegura('x" onerror="window.__xss=1'),
+      vazio: imagemSegura('javascript:alert(1)'),
+      valido: imagemSegura('data:image/png;base64,AAAABBBB'),
+      escapa: esc('a"><b')
+    }));
+    checa(sanit.forjado === '' && sanit.vazio === '', 'imagemSegura rejeita src não-imagem');
+    checa(sanit.valido === 'data:image/png;base64,AAAABBBB', 'imagemSegura aceita dataURL válido');
+    checa(!sanit.escapa.includes('"') && !sanit.escapa.includes('<'), 'esc escapa aspas e sinais');
+
+    // --- Segurança: backup malicioso não injeta atributo/script (XSS via restauração) ---
+    page.on('dialog', d => d.accept());
+    await page.evaluate(() => { window.__xss = 0; });
+    const payload = {
+      app: 'checklist-gas-novo', versao: 1,
+      dados: [{
+        checklist: { id: 'x" onmouseover="window.__xss=1', obra: { os: 'XSSCASE', endereco: 'addr', municipio: 'Taubaté' } },
+        fotos: [{ id: 'f" onerror="window.__xss=1', checklistId: 'x" onmouseover="window.__xss=1',
+                  itemKey: 'seg:interferencias', dataUrl: 'x" onerror="window.__xss=1', local: null }]
+      }]
+    };
+    await page.setInputFiles('#arq-importar', { name: 'evil.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(payload)) });
+    await page.waitForFunction(() => [...document.querySelectorAll('.cartao-checklist .os')].some(e => e.textContent.includes('XSSCASE')), null, { timeout: 5000 });
+    const temAtributoInjetado = await page.evaluate(() =>
+      [...document.querySelectorAll('.cartao-checklist')].some(el => el.hasAttribute('onmouseover')));
+    checa(!temAtributoInjetado, 'id de backup malicioso não vira atributo (escape ok)');
+    checa(await page.evaluate(() => window.__xss) === 0, 'nenhum script do backup malicioso executou');
+
     if (erros.length) throw new Error('Erros de console: ' + JSON.stringify(erros));
     console.log('\n✅ E2E concluído com sucesso (sem erros de console).');
   } finally {
