@@ -134,6 +134,7 @@ async function telaRelatorio(cl) {
     </div>
     <div class="relatorio" id="relatorio">
       <div class="rel-cabecalho">
+        <img class="rel-logo" src="icons/sabesp-logo.png" alt="Sabesp">
         <h2>${esc(CHECKLIST_DEF.titulo)}</h2>
         <div class="rel-meta">OS ${esc(cl.obra.os) || '—'} · ${esc(municipioExibicao(cl.obra)) || '—'}
           · ${esc(unidadeExibicao(cl.obra)) || '—'} · Gerado em ${new Date().toLocaleString('pt-BR')}</div>

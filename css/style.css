@@ -1,9 +1,9 @@
-/* Checklist Gás — estilos (mobile-first) */
+/* Checklist Gás — estilos (mobile-first) — paleta azul Sabesp */
 :root {
-  --primaria: #0f5e57;
-  --primaria-clara: #15756b;
-  --acento: #f5a623;
-  --acento-escuro: #d4860a;
+  --primaria: #0083c1;
+  --primaria-clara: #0277a8;
+  --acento: #00a7e1;
+  --acento-escuro: #0089bd;
   --verde: #1e8e3e;
   --vermelho: #c5221f;
   --fundo: #f2f4f7;
@@ -12,7 +12,7 @@
   --texto-suave: #6b7280;
   --borda: #d8dee6;
   --raio: 10px;
-  --sombra: 0 1px 3px rgba(15, 94, 87, .14);
+  --sombra: 0 1px 3px rgba(0, 131, 193, .14);
 }
 
 * { box-sizing: border-box; }
@@ -90,7 +90,7 @@ main { padding: 14px 12px calc(env(safe-area-inset-bottom, 0px) + 90px); max-wid
   overflow-y: auto;
   background: #fff;
   border-radius: 12px;
-  box-shadow: 0 8px 28px rgba(15, 94, 87, .35);
+  box-shadow: 0 8px 28px rgba(0, 131, 193, .35);
   padding: 14px 16px;
 }
 .popover-versoes h4 { margin: 0 0 10px; font-size: .85rem; color: var(--primaria); }
@@ -130,10 +130,13 @@ main { padding: 14px 12px calc(env(safe-area-inset-bottom, 0px) + 90px); max-wid
   border-radius: 999px;
   padding: 15px 22px;
   font-size: 1rem;
-  box-shadow: 0 4px 14px rgba(15, 94, 87, .35);
+  box-shadow: 0 4px 14px rgba(0, 131, 193, .35);
 }
 
 /* ---------- Tela inicial ---------- */
+.logo-sabesp { text-align: center; margin: 6px 0 16px; }
+.logo-sabesp img { height: 84px; width: auto; max-width: 70%; object-fit: contain; }
+
 .busca {
   width: 100%;
   padding: 12px 14px;
@@ -392,7 +395,7 @@ main { padding: 14px 12px calc(env(safe-area-inset-bottom, 0px) + 90px); max-wid
 .modal-fundo {
   position: fixed;
   inset: 0;
-  background: rgba(15, 94, 87, .65);
+  background: rgba(0, 131, 193, .65);
   z-index: 50;
   display: flex;
   align-items: center;
@@ -458,6 +461,7 @@ main { padding: 14px 12px calc(env(safe-area-inset-bottom, 0px) + 90px); max-wid
 /* ---------- Relatório ---------- */
 .relatorio { background: #fff; border-radius: var(--raio); box-shadow: var(--sombra); padding: 18px; }
 .rel-cabecalho { text-align: center; border-bottom: 3px solid var(--acento); padding-bottom: 12px; margin-bottom: 14px; }
+.rel-logo { height: 56px; width: auto; display: block; margin: 0 auto 10px; }
 .rel-cabecalho h2 { font-size: 1rem; color: var(--primaria); margin: 0; line-height: 1.4; }
 .rel-cabecalho .rel-meta { font-size: .78rem; color: var(--texto-suave); margin-top: 6px; }
 

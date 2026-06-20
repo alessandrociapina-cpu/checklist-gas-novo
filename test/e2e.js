@@ -54,6 +54,7 @@ function aguardarServidor(url, tentativas = 50) {
     const txtRest = (await page.textContent('#btn-importar')).trim();
     checa(txtBackup.includes('Backup') && !txtBackup.includes('JSON'), 'botão "Backup"');
     checa(txtRest.includes('Restaurar Backup'), 'botão "Restaurar Backup"');
+    checa(await page.locator('.logo-sabesp img').count() === 1, 'logo Sabesp na tela inicial');
 
     await page.click('#btn-novo');
     await page.waitForSelector('.etapas');
@@ -133,6 +134,7 @@ function aguardarServidor(url, tentativas = 50) {
     await page.waitForSelector('#relatorio');
 
     const texto = await page.textContent('#relatorio');
+    checa(await page.locator('#relatorio .rel-logo').count() === 1, 'logo Sabesp no relatório');
     checa(texto.includes('123456'), 'OS no relatório');
     checa(texto.includes('Rua das Flores'), 'endereço no relatório');
     checa(texto.includes('Taubaté'), 'município no relatório');
