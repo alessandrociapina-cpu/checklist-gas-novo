@@ -1,9 +1,18 @@
 /* Versão do aplicativo e histórico de atualizações (mais recente primeiro) */
 'use strict';
 
-const APP_VERSAO = '1.8.0';
+const APP_VERSAO = '1.9.0';
 
 const HISTORICO_VERSOES = [
+  {
+    versao: '1.9.0',
+    data: '2026-06-20',
+    itens: [
+      'Nova aba Atualização Cadastral (obrigatória), antes de Responsáveis',
+      'Permite registrar uma ou mais atualizações do cadastro (rede, informação, posição, descrição e fotos)',
+      'Atualização cadastral incluída no relatório'
+    ]
+  },
   {
     versao: '1.8.0',
     data: '2026-06-20',

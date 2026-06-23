@@ -5,6 +5,7 @@ const ETAPAS = [
   { id: 'obra',         rotulo: 'Dados da Obra' },
   { id: 'gas',          rotulo: 'Rede de Gás' },
   { id: 'seguranca',    rotulo: 'Verificação de Segurança' },
+  { id: 'cadastro',     rotulo: 'Atualização Cadastral' },
   { id: 'responsaveis', rotulo: 'Responsáveis' },
   { id: 'observacoes',  rotulo: 'Observações' },
   { id: 'relatorio',    rotulo: 'Relatório PDF' }
@@ -360,6 +361,7 @@ function etapaCompleta(etapa) {
   if (etapa.id === 'obra') return !!(o.os && o.endereco && o.municipio && o.unidade && o.tipoServico);
   if (etapa.id === 'gas') return !!(g.material && g.diametro && g.pressao && g.criticidade);
   if (etapa.id === 'seguranca') return clAtual.seguranca.every(segResolvida);
+  if (etapa.id === 'cadastro') return cadastroPreenchido(clAtual) >= 1;
   if (etapa.id === 'responsaveis') return !!(r.empresaExecutora || r.responsavelExecutora || r.encarregado || r.coordenador || r.plantonista);
   if (etapa.id === 'observacoes') return (clAtual.observacoes.texto || '').trim() !== '';
   return false;
@@ -379,6 +381,7 @@ function telaFormulario(etapaIdx) {
   if (etapa.id === 'obra')         corpo = htmlEtapaCampos('Dados da Obra', CHECKLIST_DEF.obra, clAtual.obra);
   else if (etapa.id === 'gas')     corpo = htmlEtapaCampos('Informações da Rede de Gás', CHECKLIST_DEF.gas, clAtual.gas);
   else if (etapa.id === 'seguranca') corpo = htmlEtapaSeguranca();
+  else if (etapa.id === 'cadastro') corpo = htmlEtapaCadastro();
   else if (etapa.id === 'responsaveis') corpo = htmlEtapaCampos('Responsáveis', CHECKLIST_DEF.responsaveis, clAtual.responsaveis);
   else if (etapa.id === 'observacoes') corpo = htmlEtapaObservacoes();
   else corpo = htmlEtapaRelatorio();
@@ -405,6 +408,7 @@ function telaFormulario(etapaIdx) {
   if (etapa.id === 'obra')         ligarEtapaCampos(CHECKLIST_DEF.obra, clAtual.obra);
   else if (etapa.id === 'gas')     ligarEtapaCampos(CHECKLIST_DEF.gas, clAtual.gas);
   else if (etapa.id === 'seguranca') ligarEtapaSeguranca();
+  else if (etapa.id === 'cadastro') ligarEtapaCadastro();
   else if (etapa.id === 'responsaveis') ligarEtapaCampos(CHECKLIST_DEF.responsaveis, clAtual.responsaveis);
   else if (etapa.id === 'observacoes') ligarEtapaObservacoes();
   else ligarEtapaRelatorio();
@@ -596,6 +600,98 @@ function ligarEtapaSeguranca() {
   });
 }
 
+/* --- etapa: atualização cadastral (obrigatória; um ou mais registros) --- */
+function htmlEtapaCadastro() {
+  const def = CHECKLIST_DEF.cadastro;
+  const registros = clAtual.cadastro.registros;
+  const corpo = registros.map((r, i) => `
+    <div class="registro-cad" data-reg="${esc(r.id)}">
+      <div class="reg-cabeca">
+        <h3>Registro ${i + 1}</h3>
+        ${registros.length > 1 ? `<button class="btn-icone-reg" data-acao="remover" title="Remover registro">🗑</button>` : ''}
+      </div>
+      <label class="rotulo">Rede</label>
+      <div class="opcoes" data-campo="rede">
+        ${def.redes.map(op => `<button class="opcao ${r.rede === op ? 'marcada' : ''}" data-valor="${esc(op)}">${esc(op)}</button>`).join('')}
+      </div>
+      <label class="rotulo">Informação a atualizar no cadastro</label>
+      <div class="opcoes" data-campo="tipos" data-multi>
+        ${def.tipos.map(op => `<button class="opcao ${(r.tipos || []).includes(op) ? 'marcada' : ''}" data-valor="${esc(op)}">${esc(op)}</button>`).join('')}
+      </div>
+      <label class="rotulo">Posição da rede na via</label>
+      <div class="opcoes" data-campo="posicao">
+        ${def.posicoes.map(op => `<button class="opcao ${r.posicao === op ? 'marcada' : ''}" data-valor="${esc(op)}">${esc(op)}</button>`).join('')}
+      </div>
+      <label class="rotulo">Descrição da atualização</label>
+      <textarea data-campo="descricao" class="${(r.descricao || '').trim() ? '' : 'just-vazia'}"
+        placeholder="Ex.: o cadastro não informava a profundidade; rede encontrada a 0,50 m na calçada.">${esc(r.descricao)}</textarea>
+      <label class="rotulo">Fotos (câmera ou galeria)</label>
+      <div class="fotos-wrap" data-fotos></div>
+    </div>`).join('');
+
+  return `<div class="secao-titulo">${esc(def.titulo)}</div>
+    <div class="aviso-regra">Etapa obrigatória: registre ao menos uma atualização do cadastro com base no que foi verificado em campo. Você pode adicionar mais de uma.</div>
+    <div id="registros-cad">${corpo}</div>
+    <button class="btn btn-secundario btn-bloco" id="btn-add-registro">＋ Adicionar outra atualização</button>`;
+}
+
+function ligarEtapaCadastro() {
+  const idx = etapaAtualIdx;
+  const cad = clAtual.cadastro;
+
+  const btnAdd = document.getElementById('btn-add-registro');
+  if (btnAdd) btnAdd.onclick = async () => {
+    cad.registros.push(novoRegistroCadastro());
+    await DB.salvarChecklist(clAtual);
+    telaFormulario(idx);
+  };
+
+  $view().querySelectorAll('.registro-cad').forEach(el => {
+    const reg = cad.registros.find(r => r.id === el.dataset.reg);
+    if (!reg) return;
+
+    const rm = el.querySelector('[data-acao=remover]');
+    if (rm) rm.onclick = async () => {
+      if (!confirm('Remover este registro? As fotos dele também serão removidas.')) return;
+      const fotos = await DB.fotosDoItem(clAtual.id, `cad:${reg.id}`);
+      for (const f of fotos) await DB.excluirFoto(f.id);
+      cad.registros = cad.registros.filter(r => r.id !== reg.id);
+      await DB.salvarChecklist(clAtual);
+      telaFormulario(idx);
+    };
+
+    el.querySelectorAll('.opcoes[data-campo]').forEach(grupo => {
+      const campo = grupo.dataset.campo;
+      const multi = grupo.hasAttribute('data-multi');
+      grupo.addEventListener('click', e => {
+        const btn = e.target.closest('.opcao');
+        if (!btn) return;
+        if (multi) {
+          const atual = reg[campo] || [];
+          const i = atual.indexOf(btn.dataset.valor);
+          if (i >= 0) atual.splice(i, 1); else atual.push(btn.dataset.valor);
+          reg[campo] = atual;
+          btn.classList.toggle('marcada', i < 0);
+        } else {
+          const novo = reg[campo] === btn.dataset.valor ? '' : btn.dataset.valor;
+          reg[campo] = novo;
+          grupo.querySelectorAll('.opcao').forEach(b => b.classList.toggle('marcada', b.dataset.valor === novo));
+        }
+        agendarSalvar();
+      });
+    });
+
+    const txt = el.querySelector('textarea[data-campo=descricao]');
+    txt.addEventListener('input', () => {
+      reg.descricao = txt.value;
+      txt.classList.toggle('just-vazia', !txt.value.trim());
+      agendarSalvar();
+    });
+
+    ligarFotos(el.querySelector('[data-fotos]'), `cad:${reg.id}`);
+  });
+}
+
 /* --- etapa: observações --- */
 function htmlEtapaObservacoes() {
   return `<div class="secao-titulo">Observações</div>
@@ -626,6 +722,7 @@ function htmlEtapaRelatorio() {
     <div class="campo rel-intro">
       <p>Gere o relatório com todas as informações preenchidas nas abas anteriores e as evidências fotográficas.</p>
       ${p.pend ? `<p class="rel-aviso-pend">⚠ ${p.pend} verificação(ões) respondida(s) "Não" sem justificativa.</p>` : ''}
+      ${cadastroPreenchido(clAtual) < 1 ? `<p class="rel-aviso-pend">⚠ Atualização cadastral pendente (registre ao menos uma).</p>` : ''}
       <button class="btn btn-primario btn-bloco" id="btn-gerar-rel">📄 Gerar relatório em PDF</button>
     </div>`;
 }

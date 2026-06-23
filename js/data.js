@@ -73,8 +73,34 @@ const CHECKLIST_DEF = {
     { id: 'coordenador', label: 'Coordenador Sabesp', tipo: 'texto', placeholder: 'Nome do coordenador', assinatura: true },
     { id: 'plantonista', label: 'Plantonista - fins de semana, feriados e período noturno',
       tipo: 'texto', placeholder: 'Nome do plantonista', assinatura: true }
-  ]
+  ],
+
+  /* Aba 5 — Atualização Cadastral (obrigatória; um ou mais registros) */
+  cadastro: {
+    titulo: 'ATUALIZAÇÃO CADASTRAL',
+    redes: ['Água', 'Esgoto', 'Gás'],
+    tipos: ['Material', 'Profundidade', 'Diâmetro', 'Posição na via', 'Rede não cadastrada', 'Outra informação'],
+    posicoes: ['Terço adjacente', 'Terço oposto', 'Eixo da pista', 'Calçada/Passeio']
+  }
 };
+
+function novoIdRegistro() {
+  return 'rg_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+function novoRegistroCadastro() {
+  return { id: novoIdRegistro(), rede: '', tipos: [], posicao: '', descricao: '' };
+}
+
+/* Um registro de atualização cadastral é válido quando tem rede e descrição */
+function registroCadastroValido(r) {
+  return !!(r && r.rede && (r.descricao || '').trim() !== '');
+}
+
+/* Quantidade de registros de atualização cadastral preenchidos */
+function cadastroPreenchido(cl) {
+  return ((cl.cadastro && cl.cadastro.registros) || []).filter(registroCadastroValido).length;
+}
 
 function itemSegurancaVazio() {
   return { resposta: '', justificativa: '' };
@@ -115,6 +141,7 @@ function novoChecklist() {
     seguranca,
     responsaveis,
     assinaturas,
+    cadastro: { registros: [novoRegistroCadastro()] },
     observacoes: { texto: '' }
   };
 }
@@ -139,6 +166,17 @@ function migrarChecklist(cl) {
   CHECKLIST_DEF.responsaveis.forEach(c => { if (cl.responsaveis[c.id] === undefined) cl.responsaveis[c.id] = ''; });
   cl.assinaturas = cl.assinaturas || {};
   CHECKLIST_DEF.responsaveis.forEach(c => { if (c.assinatura && cl.assinaturas[c.id] === undefined) cl.assinaturas[c.id] = null; });
+  if (!cl.cadastro || typeof cl.cadastro !== 'object') cl.cadastro = { registros: [] };
+  if (!Array.isArray(cl.cadastro.registros)) cl.cadastro.registros = [];
+  cl.cadastro.registros.forEach(r => {
+    if (!r.id) r.id = novoIdRegistro();
+    if (r.rede === undefined) r.rede = '';
+    if (!Array.isArray(r.tipos)) r.tipos = [];
+    if (r.posicao === undefined) r.posicao = '';
+    if (r.descricao === undefined) r.descricao = '';
+  });
+  // Atualização cadastral é obrigatória: garante ao menos um registro para preencher
+  if (!cl.cadastro.registros.length) cl.cadastro.registros.push(novoRegistroCadastro());
   if (!cl.observacoes) cl.observacoes = { texto: '' };
   if (cl.observacoes.texto === undefined) cl.observacoes.texto = '';
   return cl;

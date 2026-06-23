@@ -100,8 +100,15 @@ function aguardarServidor(url, tentativas = 50) {
       () => document.querySelectorAll('.item-seg')[0].querySelectorAll('.foto-mini').length >= 1,
       null, { timeout: 5000 });
 
-    // Aba 4 — Responsáveis
+    // Aba 4 — Atualização Cadastral (obrigatória)
     await page.click('.etapa-chip[data-etapa="3"]');
+    await page.waitForSelector('.registro-cad');
+    await page.click('.registro-cad .opcoes[data-campo="rede"] .opcao[data-valor="Água"]');
+    await page.click('.registro-cad .opcoes[data-campo="tipos"] .opcao[data-valor="Profundidade"]');
+    await page.fill('.registro-cad textarea[data-campo="descricao"]', 'Cadastro omitia a profundidade; rede a 0,50 m na calçada.');
+
+    // Aba 5 — Responsáveis
+    await page.click('.etapa-chip[data-etapa="4"]');
     await page.waitForSelector('input[data-campo="fiscal"]');
     await page.fill('input[data-campo="fiscal"]', 'Fiscal F');
     await page.fill('input[data-campo="empresaExecutora"]', 'Construtora XYZ');
@@ -122,13 +129,13 @@ function aguardarServidor(url, tentativas = 50) {
     await page.click('.modal-fundo [data-acao="confirmar"]');
     await page.waitForSelector('.assinatura-campo[data-assinatura="fiscal"] [data-preview] img', { timeout: 5000 });
 
-    // Aba 5 — Observações
-    await page.click('.etapa-chip[data-etapa="4"]');
+    // Aba 6 — Observações
+    await page.click('.etapa-chip[data-etapa="5"]');
     await page.waitForSelector('textarea[data-obs]');
     await page.fill('textarea[data-obs]', 'Escavação manual com sondagem prévia.');
 
-    // Aba 6 — Relatório
-    await page.click('.etapa-chip[data-etapa="5"]');
+    // Aba 7 — Relatório
+    await page.click('.etapa-chip[data-etapa="6"]');
     await page.waitForSelector('#btn-gerar-rel');
     await page.click('#btn-gerar-rel');
     await page.waitForSelector('#relatorio');
@@ -146,6 +153,8 @@ function aguardarServidor(url, tentativas = 50) {
     checa(texto.includes('Construtora XYZ'), 'empresa executora no relatório');
     checa(texto.includes('Encarregado A'), 'responsável no relatório');
     checa(texto.includes('Escavação manual'), 'observações no relatório');
+    checa(texto.includes('Atualização Cadastral'), 'seção de atualização cadastral no relatório');
+    checa(texto.includes('Cadastro omitia a profundidade'), 'descrição da atualização cadastral no relatório');
     checa(texto.includes('Fiscal Sabesp'), 'papel Fiscal Sabesp na seção de assinaturas');
     const numAss = await page.$$eval('#relatorio .rel-assinaturas img', els => els.length);
     checa(numAss >= 1, 'assinatura desenhada exibida no relatório');
