@@ -422,6 +422,33 @@ main { padding: 14px 12px calc(env(safe-area-inset-bottom, 0px) + 90px); max-wid
 .modal .acoes-modal { display: flex; gap: 10px; margin-top: 12px; }
 .modal .acoes-modal .btn { flex: 1; }
 
+/* ---------- Atualização cadastral ---------- */
+.registro-cad {
+  background: var(--cartao);
+  border-radius: var(--raio);
+  box-shadow: var(--sombra);
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  border-left: 5px solid var(--primaria-clara);
+}
+.registro-cad .reg-cabeca { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.registro-cad h3 { margin: 0; font-size: .92rem; color: var(--primaria); }
+.btn-icone-reg { background: none; border: none; font-size: 1.1rem; cursor: pointer; padding: 4px 6px; border-radius: 6px; }
+.registro-cad .rotulo { display: block; font-size: .8rem; font-weight: 600; color: var(--texto-suave); margin: 12px 0 6px; }
+.registro-cad textarea {
+  width: 100%;
+  border: 1.5px solid var(--borda);
+  border-radius: 8px;
+  padding: 9px 11px;
+  font-size: .92rem;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 64px;
+}
+.registro-cad textarea:focus { outline: none; border-color: var(--acento); }
+.registro-cad textarea.just-vazia { border-color: var(--vermelho); background: #fff7f7; }
+#btn-add-registro { margin-bottom: 10px; }
+
 /* ---------- Aba relatório PDF ---------- */
 .rel-intro p { font-size: .9rem; color: var(--texto); line-height: 1.45; margin: 0 0 12px; }
 .rel-intro .rel-aviso-pend { color: var(--vermelho); font-weight: 600; }

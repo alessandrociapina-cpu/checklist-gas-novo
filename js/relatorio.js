@@ -85,8 +85,29 @@ function tabelaCamposRel(defArray, dados) {
     </table>`;
 }
 
+/* Tabela de Atualização Cadastral para o relatório (só os registros válidos) */
+function secaoCadastroRel(cl) {
+  const validos = ((cl.cadastro && cl.cadastro.registros) || []).filter(registroCadastroValido);
+  if (!validos.length) {
+    return `<p class="rel-just rel-just-pend">⚠ ATUALIZAÇÃO CADASTRAL PENDENTE — nenhuma atualização registrada.</p>`;
+  }
+  return `<table class="rel-tabela">
+      <tr><th style="width:24px">#</th><th style="width:64px">Rede</th><th>Informações</th>
+          <th style="width:20%">Posição na via</th><th style="width:36%">Descrição</th></tr>
+      ${validos.map((r, i) => `
+        <tr>
+          <td class="rel-num centro">${i + 1}</td>
+          <td>${esc(r.rede) || '—'}</td>
+          <td>${(r.tipos || []).length ? esc(r.tipos.join(', ')) : '—'}</td>
+          <td>${esc(r.posicao) || '—'}</td>
+          <td>${esc(r.descricao) || '—'}</td>
+        </tr>`).join('')}
+    </table>`;
+}
+
 async function telaRelatorio(cl) {
-  montarTopo(`Relatório · OS ${cl.obra.os || 'sem número'}`, null, `#/form/${cl.id}/5`);
+  const idxRelatorio = ETAPAS.findIndex(e => e.id === 'relatorio');
+  montarTopo(`Relatório · OS ${cl.obra.os || 'sem número'}`, null, `#/form/${cl.id}/${idxRelatorio}`);
 
   const fotos = await DB.fotosDoChecklist(cl.id);
   const fotosPorItem = {};
@@ -116,6 +137,8 @@ async function telaRelatorio(cl) {
   /* Evidências fotográficas — legenda por campo (segurança e observações) */
   const gruposFoto = [
     ...CHECKLIST_DEF.seguranca.map(q => ({ key: `seg:${q.id}`, rotulo: q.pergunta })),
+    ...((cl.cadastro && cl.cadastro.registros) || []).map((r, i) =>
+      ({ key: `cad:${r.id}`, rotulo: `Atualização cadastral — Registro ${i + 1}${r.rede ? ' (' + r.rede + ')' : ''}` })),
     { key: 'obs', rotulo: 'Observações da obra' }
   ];
   const evidencias = gruposFoto.map(grp => {
@@ -179,6 +202,11 @@ async function telaRelatorio(cl) {
           <tr><th style="width:24px">#</th><th>Pergunta</th><th style="width:64px">Resposta</th></tr>
           ${linhasSeg}
         </table>
+      </div>
+
+      <div class="rel-secao">
+        <h3>Atualização Cadastral</h3>
+        ${secaoCadastroRel(cl)}
       </div>
 
       <div class="rel-secao">

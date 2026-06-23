@@ -8,13 +8,14 @@ Instruções para o Claude Code ao trabalhar neste repositório.
 com interferência em rede de gás (serviços de água e esgoto da Sabesp). Reaproveita a
 arquitetura do app `checklist-gas` anterior, com a estrutura de campos/abas atualizada.
 
-Estrutura do formulário (6 abas):
+Estrutura do formulário (7 abas):
 1. Dados da Obra
 2. Informações da Rede de Gás
 3. Verificação de Segurança (Sim/Não + justificativa + fotos)
-4. Responsáveis
-5. Observações (texto + fotos)
-6. Relatório PDF
+4. Atualização Cadastral (obrigatória; um ou mais registros + fotos)
+5. Responsáveis
+6. Observações (texto + fotos)
+7. Relatório PDF
 
 ## Arquitetura
 
@@ -48,7 +49,7 @@ em campo). JavaScript puro, dados locais no aparelho.
 5. **Retrocompatibilidade**: ao adicionar/renomear campos, atualizar `migrarChecklist()` (backups
    JSON e checklists antigos precisam continuar abrindo). IDs de campos existentes não mudam.
 6. **Fotos** são vinculadas por `itemKey` no store `fotos`: `seg:<idPergunta>` para a verificação
-   de segurança e `obs` para as observações.
+   de segurança, `cad:<idRegistro>` para a atualização cadastral e `obs` para as observações.
 7. **Assinaturas no dedo**: campos de `responsaveis` com `assinatura: true` ganham um canvas; a
    imagem (dataURL PNG) fica em `cl.assinaturas[<idCampo>]` (dentro do próprio checklist, vai no
    backup JSON). O relatório exibe a seção Assinaturas a partir desses campos.
