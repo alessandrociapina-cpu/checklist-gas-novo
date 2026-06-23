@@ -1,9 +1,17 @@
 /* Versão do aplicativo e histórico de atualizações (mais recente primeiro) */
 'use strict';
 
-const APP_VERSAO = '1.7.0';
+const APP_VERSAO = '1.8.0';
 
 const HISTORICO_VERSOES = [
+  {
+    versao: '1.8.0',
+    data: '2026-06-20',
+    itens: [
+      'Unidades passam a ser OVMT, OIOT e OVMS',
+      'Município Tremembé incluído na lista'
+    ]
+  },
   {
     versao: '1.7.0',
     data: '2026-06-20',

@@ -1,10 +1,10 @@
 /* Definição do checklist — fonte única dos campos, opções e abas do novo check-list */
 'use strict';
 
-const UNIDADES = ['OVMS', 'OVMI', 'OV', 'Outros'];
+const UNIDADES = ['OVMT', 'OIOT', 'OVMS', 'Outros'];
 
 const MUNICIPIOS = [
-  'São José dos Campos', 'Taubaté', 'Caçapava', 'Pindamonhangaba', 'Caraguatatuba', 'Outros'
+  'São José dos Campos', 'Taubaté', 'Tremembé', 'Caçapava', 'Pindamonhangaba', 'Caraguatatuba', 'Outros'
 ];
 
 const TIPOS_SERVICO = [
