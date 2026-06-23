@@ -1,9 +1,16 @@
 /* Versão do aplicativo e histórico de atualizações (mais recente primeiro) */
 'use strict';
 
-const APP_VERSAO = '1.9.0';
+const APP_VERSAO = '1.10.0';
 
 const HISTORICO_VERSOES = [
+  {
+    versao: '1.10.0',
+    data: '2026-06-23',
+    itens: [
+      'Atualização automática quando há internet (service worker rede-primeiro), mantendo o funcionamento offline em campo'
+    ]
+  },
   {
     versao: '1.9.0',
     data: '2026-06-20',
