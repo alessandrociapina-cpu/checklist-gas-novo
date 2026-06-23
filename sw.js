@@ -1,7 +1,8 @@
-/* Service worker — cache do app para funcionamento 100% offline */
+/* Service worker — rede-primeiro com cache de reserva (atualiza sozinho quando
+   online e continua funcionando 100% offline em campo). */
 'use strict';
 
-const CACHE = 'checklist-gas-novo-v10';
+const CACHE = 'checklist-gas-novo-v11';
 const ARQUIVOS = [
   './',
   './index.html',
@@ -18,6 +19,8 @@ const ARQUIVOS = [
   './icons/sabesp-logo.png'
 ];
 
+const TIMEOUT_REDE = 3500; // se a rede demorar mais que isso, usa o cache
+
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ARQUIVOS)).then(() => self.skipWaiting()));
 });
@@ -30,19 +33,42 @@ self.addEventListener('activate', e => {
   );
 });
 
-/* Cache primeiro; rede como reserva (e atualização do cache quando online) */
+/* Reserva: resposta do cache (para navegações, cai no index.html) */
+async function doCache(req) {
+  const cache = await caches.open(CACHE);
+  const hit = await cache.match(req, { ignoreSearch: true });
+  if (hit) return hit;
+  if (req.mode === 'navigate') {
+    const shell = await cache.match('./index.html');
+    if (shell) return shell;
+  }
+  return Response.error();
+}
+
+/* Rede primeiro: tenta a rede (atualizando o cache); usa o cache se falhar ou demorar */
+function redeComReserva(req) {
+  return new Promise(resolve => {
+    let pronto = false;
+    const cair = () => { if (!pronto) { pronto = true; resolve(doCache(req)); } };
+
+    fetch(req).then(net => {
+      if (pronto) {                       // o cache já respondeu (timeout): só atualiza
+        if (net && net.ok) caches.open(CACHE).then(c => c.put(req, net.clone())).catch(() => {});
+        return;
+      }
+      pronto = true;
+      if (net && net.ok) caches.open(CACHE).then(c => c.put(req, net.clone())).catch(() => {});
+      resolve(net);
+    }).catch(cair);
+
+    setTimeout(cair, TIMEOUT_REDE);
+  });
+}
+
 self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET') return;
-  e.respondWith(
-    caches.match(e.request, { ignoreSearch: true }).then(res =>
-      res ||
-      fetch(e.request).then(net => {
-        if (net.ok && new URL(e.request.url).origin === location.origin) {
-          const copia = net.clone();
-          caches.open(CACHE).then(c => c.put(e.request, copia));
-        }
-        return net;
-      }).catch(() => caches.match('./index.html'))
-    )
-  );
+  const req = e.request;
+  if (req.method !== 'GET') return;
+  // só intercepta recursos da própria origem; deixa terceiros passarem direto
+  if (new URL(req.url).origin !== location.origin) return;
+  e.respondWith(redeComReserva(req));
 });
