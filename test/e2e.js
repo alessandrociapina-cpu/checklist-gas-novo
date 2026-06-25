@@ -68,6 +68,10 @@ function aguardarServidor(url, tentativas = 50) {
     await page.selectOption('select[data-campo="tipoServico"]', 'Outros');
     await page.waitForSelector('input[data-campo="tipoServicoOutro"]:not([hidden])');
     await page.fill('input[data-campo="tipoServicoOutro"]', 'Serviço especial X');
+    await page.fill('input[data-campo="dataInicio"]', '2026-06-23');
+    await page.fill('input[data-campo="horaInicio"]', '08:00');
+    await page.fill('input[data-campo="dataFim"]', '2026-06-23');
+    await page.fill('input[data-campo="horaFim"]', '17:30');
 
     // Aba 2 — Rede de Gás
     await page.click('.etapa-chip[data-etapa="1"]');
@@ -146,6 +150,8 @@ function aguardarServidor(url, tentativas = 50) {
     checa(texto.includes('Rua das Flores'), 'endereço no relatório');
     checa(texto.includes('Taubaté'), 'município no relatório');
     checa(texto.includes('Serviço especial X'), 'tipo de serviço "Outros" no relatório');
+    checa(texto.includes('23/06/2026'), 'data de início no relatório (dd/mm/aaaa)');
+    checa(texto.includes('08:00') && texto.includes('17:30'), 'horas de início e fim no relatório');
     checa(texto.includes('-23.531109 / -46.695648'), 'localização no relatório');
     checa(texto.includes('PE'), 'material no relatório');
     checa(texto.includes('Alta'), 'criticidade no relatório');

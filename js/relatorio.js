@@ -55,6 +55,7 @@ function galeriaFotosRel(fts, altText) {
 function valorCampoRel(c, dados) {
   const v = dados[c.id];
   if (v === '' || v === undefined || v === null) return '<span class="rel-num">—</span>';
+  if (c.tipo === 'data') return esc(fmtData(v));
   if (c.outro && v === 'Outros') return esc(dados[c.outro.id] || 'Outros');
   return esc(v);
 }

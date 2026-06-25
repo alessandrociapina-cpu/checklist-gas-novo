@@ -438,6 +438,12 @@ function htmlControleCampo(c, dados) {
         <button type="button" class="btn btn-secundario btn-gps" data-gps="${c.id}">📍 Obter localização</button>
       </div>`;
   }
+  if (c.tipo === 'data') {
+    return `<input type="date" data-campo="${c.id}" value="${esc(v)}">`;
+  }
+  if (c.tipo === 'hora') {
+    return `<input type="time" data-campo="${c.id}" value="${esc(v)}">`;
+  }
   if (c.tipo === 'areatexto') {
     return `<textarea data-campo="${c.id}" placeholder="${esc(c.placeholder || '')}">${esc(v)}</textarea>`;
   }
