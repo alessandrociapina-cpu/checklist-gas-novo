@@ -32,7 +32,11 @@ const CHECKLIST_DEF = {
     { id: 'localizacao', label: 'Localização', tipo: 'gps',
       hint: 'Toque em "Obter localização" para capturar as coordenadas GPS do aparelho' },
     { id: 'tipoServico', label: 'Tipo de Serviço', tipo: 'select',
-      opcoes: TIPOS_SERVICO, outro: { id: 'tipoServicoOutro', placeholder: 'Informe o tipo de serviço' } }
+      opcoes: TIPOS_SERVICO, outro: { id: 'tipoServicoOutro', placeholder: 'Informe o tipo de serviço' } },
+    { id: 'dataInicio', label: 'Data de Início do Serviço', tipo: 'data' },
+    { id: 'horaInicio', label: 'Hora de Início do Serviço', tipo: 'hora' },
+    { id: 'dataFim', label: 'Data de Fim do Serviço', tipo: 'data' },
+    { id: 'horaFim', label: 'Hora de Fim do Serviço', tipo: 'hora' }
   ],
 
   /* Aba 2 — Informações da Rede de Gás */
@@ -120,6 +124,7 @@ function novoChecklist() {
     obra[c.id] = '';
     if (c.outro) obra[c.outro.id] = '';
   });
+  obra.dataInicio = new Date().toISOString().slice(0, 10); // pré-preenche com a data de hoje
 
   const gas = {};
   CHECKLIST_DEF.gas.forEach(c => { gas[c.id] = ''; });

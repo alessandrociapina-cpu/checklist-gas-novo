@@ -1,9 +1,16 @@
 /* Versão do aplicativo e histórico de atualizações (mais recente primeiro) */
 'use strict';
 
-const APP_VERSAO = '1.10.0';
+const APP_VERSAO = '1.11.0';
 
 const HISTORICO_VERSOES = [
+  {
+    versao: '1.11.0',
+    data: '2026-06-23',
+    itens: [
+      'Campos de Data e Hora de Início e de Fim do Serviço na aba Dados da Obra'
+    ]
+  },
   {
     versao: '1.10.0',
     data: '2026-06-23',
