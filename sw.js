@@ -2,7 +2,7 @@
    online e continua funcionando 100% offline em campo). */
 'use strict';
 
-const CACHE = 'checklist-gas-novo-v14';
+const CACHE = 'checklist-gas-novo-v15';
 const ARQUIVOS = [
   './',
   './index.html',
