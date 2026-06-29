@@ -297,7 +297,7 @@ async function telaRelatorio(cl) {
       <div class="rel-secao">
         <h3>Assinaturas</h3>
         <div class="rel-assinaturas">${assinaturasRel(cl)}</div>
-        ${temAssinaturaPendente(cl) ? `<p class="rel-obs-assinatura">Observação: assinaturas pendentes poderão ser assinadas digitalmente no aplicativo.</p>` : ''}
+        ${temAssinaturaPendente(cl) ? `<p class="rel-obs-assinatura">Observação: assinaturas pendentes poderão ser assinadas digitalmente no PDF (assinatura/certificado digital).</p>` : ''}
       </div>
 
       <div class="rel-secao">
