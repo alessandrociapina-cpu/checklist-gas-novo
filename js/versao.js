@@ -1,14 +1,21 @@
 /* Versão do aplicativo e histórico de atualizações (mais recente primeiro) */
 'use strict';
 
-const APP_VERSAO = '1.12.0';
+const APP_VERSAO = '1.12.1';
 
 const HISTORICO_VERSOES = [
+  {
+    versao: '1.12.1',
+    data: '2026-06-23',
+    itens: [
+      'Correção da opção de pressão: 350 mbar (antes 350 bar)'
+    ]
+  },
   {
     versao: '1.12.0',
     data: '2026-06-23',
     itens: [
-      'Anexo de arquivos PDF (ao lado de Câmera/Galeria); os anexos são impressos ao final do relatório',
+      'Anexo de arquivos PDF (ao lado de Câmera/Galeria); os anexos são impressos ao final do relatório — contribuição da OLMS',
       'Fotos maiores na impressão do relatório (2 por linha)',
       'Aviso de que assinaturas pendentes podem ser assinadas digitalmente'
     ]
