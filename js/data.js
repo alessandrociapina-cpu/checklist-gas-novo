@@ -49,7 +49,7 @@ const CHECKLIST_DEF = {
     { id: 'diametro', label: 'Diâmetro Rede/Ramal de Gás', tipo: 'opcoes',
       opcoes: ['20', '40', '63', '90', '125', '4"', '6"', '8"'] },
     { id: 'pressao', label: 'Pressão', tipo: 'opcoes',
-      opcoes: ['350 bar', '4 bar', '7 bar', '17 bar'] },
+      opcoes: ['350 mbar', '4 bar', '7 bar', '17 bar'] },
     { id: 'distanciaVala', label: 'Distância entre a vala a ser aberta e a interferência mais próxima do gás (m)',
       tipo: 'numero', passo: '0.01' },
     { id: 'criticidade', label: 'Criticidade', tipo: 'opcoes', opcoes: ['Alta', 'Média', 'Baixa'] },
@@ -161,6 +161,8 @@ function migrarChecklist(cl) {
   });
   cl.gas = cl.gas || {};
   CHECKLIST_DEF.gas.forEach(c => { if (cl.gas[c.id] === undefined) cl.gas[c.id] = ''; });
+  if (cl.gas.pressao === '350 bar') cl.gas.pressao = '350 mbar'; // correção: era milibar
+
   if (!Array.isArray(cl.seguranca)) cl.seguranca = CHECKLIST_DEF.seguranca.map(itemSegurancaVazio);
   CHECKLIST_DEF.seguranca.forEach((q, i) => {
     if (!cl.seguranca[i]) cl.seguranca[i] = itemSegurancaVazio();
