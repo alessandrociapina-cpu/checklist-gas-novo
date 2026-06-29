@@ -553,6 +553,40 @@ td.ok-nao { color: var(--vermelho); font-weight: 700; text-align: center; }
 .acoes-relatorio { display: flex; gap: 10px; margin: 14px 0; }
 .acoes-relatorio .btn { flex: 1; }
 
+/* ---------- Anexos PDF ---------- */
+.hint-anexo { flex-basis: 100%; margin-top: 2px; }
+.anexos-lista { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.anexo-pdf {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #eef2f6;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-size: .8rem;
+  max-width: 100%;
+}
+.anexo-pdf .nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px; }
+.anexo-pdf .rm-anexo {
+  background: var(--vermelho);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: .7rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+.rel-carregando { padding: 40px 16px; text-align: center; color: var(--texto-suave); }
+.rel-obs-assinatura { font-size: .78rem; color: var(--primaria-clara); margin: 8px 0 0; font-style: italic; }
+.rel-anexos .anexo-bloco { margin-bottom: 12px; }
+.rel-anexos .anexo-titulo { font-size: .82rem; font-weight: 700; color: var(--primaria); margin: 8px 0 6px; }
+.anexo-pagina { width: 100%; height: auto; border: 1px solid var(--borda); border-radius: 4px; margin-bottom: 8px; display: block; }
+
 /* ---------- Impressão ---------- */
 @media print {
   body { background: #fff; }
@@ -560,9 +594,18 @@ td.ok-nao { color: var(--vermelho); font-weight: 700; text-align: center; }
   main { padding: 0; max-width: none; }
   .relatorio { box-shadow: none; border-radius: 0; padding: 0; }
   .rel-secao { break-inside: avoid; }
-  .rel-foto-fig, .rel-ass { break-inside: avoid; }
+  .rel-ass { break-inside: avoid; }
   .rel-secao h3 { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   table.rel-tabela th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  /* fotos maiores: 2 por linha, imagem inteira */
+  .rel-fotos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .rel-foto-fig { width: auto; break-inside: avoid; }
+  .rel-fotos img, .rel-foto-fig img { width: 100%; height: auto; max-height: 10cm; object-fit: contain; }
+  .rel-foto-fig figcaption { font-size: .62rem; }
+  /* anexos PDF: começam em nova página; cada página grande, sem cortar */
+  .rel-anexos { break-before: page; }
+  .rel-anexos .anexo-bloco { break-inside: auto; }
+  .anexo-pagina { max-height: none; break-inside: avoid; page-break-inside: avoid; }
 }
 
 @media (min-width: 600px) {

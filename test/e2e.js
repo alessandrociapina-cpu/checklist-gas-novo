@@ -12,6 +12,26 @@ const RAIZ = path.join(__dirname, '..');
 const PORT = process.env.PORT || 8123;
 const BASE = `http://localhost:${PORT}/`;
 
+/* Gera um PDF mínimo válido (1 página com texto) para testar o anexo */
+function pdfMinimo() {
+  const stream = 'BT /F1 24 Tf 40 90 Td (Anexo de teste) Tj ET';
+  const objs = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
+    `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'
+  ];
+  let pdf = '%PDF-1.4\n';
+  const offsets = [];
+  objs.forEach((o, i) => { offsets.push(pdf.length); pdf += `${i + 1} 0 obj\n${o}\nendobj\n`; });
+  const xref = pdf.length;
+  pdf += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n`;
+  offsets.forEach(off => { pdf += `${String(off).padStart(10, '0')} 00000 n \n`; });
+  pdf += `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  return Buffer.from(pdf, 'latin1');
+}
+
 function aguardarServidor(url, tentativas = 50) {
   return new Promise((resolve, reject) => {
     const tentar = n => {
@@ -133,10 +153,16 @@ function aguardarServidor(url, tentativas = 50) {
     await page.click('.modal-fundo [data-acao="confirmar"]');
     await page.waitForSelector('.assinatura-campo[data-assinatura="fiscal"] [data-preview] img', { timeout: 5000 });
 
-    // Aba 6 — Observações
+    // Aba 6 — Observações (+ anexo PDF)
     await page.click('.etapa-chip[data-etapa="5"]');
     await page.waitForSelector('textarea[data-obs]');
     await page.fill('textarea[data-obs]', 'Escavação manual com sondagem prévia.');
+    const [fcPdf] = await Promise.all([
+      page.waitForEvent('filechooser'),
+      page.click('.fotos-wrap .btn-foto[data-fonte="pdf"]')
+    ]);
+    await fcPdf.setFiles({ name: 'laudo.pdf', mimeType: 'application/pdf', buffer: pdfMinimo() });
+    await page.waitForSelector('.fotos-wrap .anexo-pdf', { timeout: 5000 });
 
     // Aba 7 — Relatório
     await page.click('.etapa-chip[data-etapa="6"]');
@@ -170,6 +196,10 @@ function aguardarServidor(url, tentativas = 50) {
     checa(numImgs >= 1, 'foto exibida como evidência');
     const rotulos = await page.$$eval('#relatorio .rel-foto-rotulo', els => els.map(e => e.textContent.trim()));
     checa(rotulos.some(r => r.includes('Interferências localizadas')), 'legenda do campo na evidência');
+    checa(await page.locator('#relatorio .rel-obs-assinatura').count() === 1, 'aviso de assinatura digital pendente');
+    const numAnexo = await page.$$eval('#relatorio .rel-anexos .anexo-pagina', els => els.length);
+    checa(numAnexo >= 1, 'anexo PDF rasterizado e incluído no relatório (' + numAnexo + ' pág.)');
+    checa(texto.includes('laudo.pdf'), 'nome do anexo PDF no relatório');
 
     // Nome do PDF baseado no endereço da obra (intercepta window.print)
     const tituloPdf = await page.evaluate(() => new Promise(resolve => {

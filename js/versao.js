@@ -1,9 +1,18 @@
 /* Versão do aplicativo e histórico de atualizações (mais recente primeiro) */
 'use strict';
 
-const APP_VERSAO = '1.11.0';
+const APP_VERSAO = '1.12.0';
 
 const HISTORICO_VERSOES = [
+  {
+    versao: '1.12.0',
+    data: '2026-06-23',
+    itens: [
+      'Anexo de arquivos PDF (ao lado de Câmera/Galeria); os anexos são impressos ao final do relatório',
+      'Fotos maiores na impressão do relatório (2 por linha)',
+      'Aviso de que assinaturas pendentes podem ser assinadas digitalmente'
+    ]
+  },
   {
     versao: '1.11.0',
     data: '2026-06-23',

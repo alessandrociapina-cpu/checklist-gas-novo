@@ -3,7 +3,7 @@
 
 const DB = (() => {
   const NOME = 'checklist-gas-novo';
-  const VERSAO = 1;
+  const VERSAO = 2;
   let db = null;
 
   function abrir() {
@@ -17,6 +17,11 @@ const DB = (() => {
         }
         if (!d.objectStoreNames.contains('fotos')) {
           const st = d.createObjectStore('fotos', { keyPath: 'id' });
+          st.createIndex('porItem', ['checklistId', 'itemKey']);
+          st.createIndex('porChecklist', 'checklistId');
+        }
+        if (!d.objectStoreNames.contains('anexos')) {
+          const st = d.createObjectStore('anexos', { keyPath: 'id' });
           st.createIndex('porItem', ['checklistId', 'itemKey']);
           st.createIndex('porChecklist', 'checklistId');
         }
@@ -64,6 +69,8 @@ const DB = (() => {
     async excluirChecklist(id) {
       const fotos = await this.fotosDoChecklist(id);
       await tx('fotos', 'readwrite', st => { fotos.forEach(f => st.delete(f.id)); return {}; });
+      const anexos = await this.anexosDoChecklist(id);
+      await tx('anexos', 'readwrite', st => { anexos.forEach(a => st.delete(a.id)); return {}; });
       return tx('checklists', 'readwrite', st => st.delete(id));
     },
 
@@ -87,6 +94,33 @@ const DB = (() => {
     fotosDoChecklist(checklistId) {
       return abrir().then(d => new Promise((resolve, reject) => {
         const idx = d.transaction('fotos').objectStore('fotos').index('porChecklist');
+        const req = idx.getAll(checklistId);
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => reject(req.error);
+      }));
+    },
+
+    /* Anexos em PDF (mesmo esquema de itemKey das fotos: seg:/cad:/obs) */
+    salvarAnexo(anexo) {
+      return tx('anexos', 'readwrite', st => st.put(anexo));
+    },
+
+    excluirAnexo(id) {
+      return tx('anexos', 'readwrite', st => st.delete(id));
+    },
+
+    anexosDoItem(checklistId, itemKey) {
+      return abrir().then(d => new Promise((resolve, reject) => {
+        const idx = d.transaction('anexos').objectStore('anexos').index('porItem');
+        const req = idx.getAll([checklistId, itemKey]);
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => reject(req.error);
+      }));
+    },
+
+    anexosDoChecklist(checklistId) {
+      return abrir().then(d => new Promise((resolve, reject) => {
+        const idx = d.transaction('anexos').objectStore('anexos').index('porChecklist');
         const req = idx.getAll(checklistId);
         req.onsuccess = () => resolve(req.result || []);
         req.onerror = () => reject(req.error);

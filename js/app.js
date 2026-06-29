@@ -99,11 +99,14 @@ function formatarCoord(local) {
   return `${local.lat.toFixed(6)} / ${local.lon.toFixed(6)}`;
 }
 
-/* Anexa fotos a uma chave (pergunta de segurança ou observações) */
+/* Anexa fotos (e anexos PDF) a uma chave (segurança, cadastro ou observações) */
 function ligarFotos(wrap, itemKey, aoMudar) {
   async function render() {
-    const fotos = await DB.fotosDoItem(clAtual.id, itemKey);
-    wrap.innerHTML = fotos.map(f => {
+    const [fotos, anexos] = await Promise.all([
+      DB.fotosDoItem(clAtual.id, itemKey),
+      DB.anexosDoItem(clAtual.id, itemKey)
+    ]);
+    const fotosHtml = fotos.map(f => {
       // src validado e id escapado: dados podem vir de um backup restaurado
       const src = imagemSegura(f.dataUrl);
       const lat = Number(f.local && f.local.lat);
@@ -116,9 +119,18 @@ function ligarFotos(wrap, itemKey, aoMudar) {
         ${temGeo ? `<span class="geo-badge" title="📍 ${lat.toFixed(6)}, ${lon.toFixed(6)}${Number.isFinite(prec) ? ` (±${prec} m)` : ''}">📍</span>` : ''}
         <button class="rm" data-foto="${esc(f.id)}" aria-label="Remover foto">✕</button>
       </div>`;
-    }).join('') +
+    }).join('');
+    const anexosHtml = anexos.map(a => `
+      <div class="anexo-pdf" title="${esc(a.nome)}">
+        <span class="ic">📄</span><span class="nome">${esc(a.nome)}</span>
+        <button class="rm-anexo" data-anexo="${esc(a.id)}" aria-label="Remover anexo">✕</button>
+      </div>`).join('');
+    wrap.innerHTML = fotosHtml +
       `<button class="btn-foto" data-fonte="camera"><span class="cam">📷</span>Câmera</button>
-       <button class="btn-foto" data-fonte="galeria"><span class="cam">🖼️</span>Galeria</button>`;
+       <button class="btn-foto" data-fonte="galeria"><span class="cam">🖼️</span>Galeria</button>
+       <button class="btn-foto" data-fonte="pdf"><span class="cam">📎</span>Anexo PDF</button>` +
+      (anexosHtml ? `<div class="anexos-lista">${anexosHtml}</div>` : '') +
+      `<div class="hint hint-anexo">Anexos em PDF serão impressos ao final do relatório.</div>`;
     if (aoMudar) aoMudar(fotos.length);
   }
   render();
@@ -144,6 +156,40 @@ function ligarFotos(wrap, itemKey, aoMudar) {
     }
   }
 
+  async function anexarPdf(arquivo) {
+    const ehPdf = arquivo.type === 'application/pdf' || /\.pdf$/i.test(arquivo.name);
+    if (!ehPdf) { alert('Selecione um arquivo PDF.'); return; }
+    if (arquivo.size > 15 * 1024 * 1024) { alert('PDF muito grande (máximo 15 MB).'); return; }
+    try {
+      const dataUrl = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result);
+        r.onerror = () => rej(r.error);
+        r.readAsDataURL(arquivo);
+      });
+      await DB.salvarAnexo({
+        id: 'an_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+        checklistId: clAtual.id,
+        itemKey,
+        nome: arquivo.name,
+        dataUrl,
+        criadoEm: new Date().toISOString()
+      });
+      render();
+    } catch {
+      alert('Não foi possível anexar o PDF.');
+    }
+  }
+
+  function escolherArquivo(accept, capture, aoEscolher) {
+    const inp = document.createElement('input');
+    inp.type = 'file';
+    inp.accept = accept;
+    if (capture) inp.setAttribute('capture', 'environment');
+    inp.onchange = () => { if (inp.files[0]) aoEscolher(inp.files[0]); };
+    inp.click();
+  }
+
   wrap.addEventListener('click', async e => {
     const rm = e.target.closest('[data-foto]');
     if (rm) {
@@ -151,15 +197,17 @@ function ligarFotos(wrap, itemKey, aoMudar) {
       render();
       return;
     }
+    const rmAnexo = e.target.closest('[data-anexo]');
+    if (rmAnexo) {
+      await DB.excluirAnexo(rmAnexo.dataset.anexo);
+      render();
+      return;
+    }
     const btn = e.target.closest('[data-fonte]');
     if (btn) {
-      const inp = document.createElement('input');
-      inp.type = 'file';
-      inp.accept = 'image/*';
-      // câmera: força a captura ao vivo; galeria: sem capture, abre fotos do aparelho
-      if (btn.dataset.fonte === 'camera') inp.setAttribute('capture', 'environment');
-      inp.onchange = () => { if (inp.files[0]) anexar(inp.files[0]); };
-      inp.click();
+      // câmera: captura ao vivo; galeria: fotos do aparelho; pdf: anexo em PDF
+      if (btn.dataset.fonte === 'pdf') escolherArquivo('application/pdf,.pdf', false, anexarPdf);
+      else escolherArquivo('image/*', btn.dataset.fonte === 'camera', anexar);
     }
   });
 }
@@ -325,7 +373,11 @@ async function telaInicial() {
     const todos = await DB.listarChecklists();
     const comFotos = [];
     for (const cl of todos) {
-      comFotos.push({ checklist: cl, fotos: await DB.fotosDoChecklist(cl.id) });
+      comFotos.push({
+        checklist: cl,
+        fotos: await DB.fotosDoChecklist(cl.id),
+        anexos: await DB.anexosDoChecklist(cl.id)
+      });
     }
     const blob = new Blob([JSON.stringify({ app: 'checklist-gas-novo', versao: 1, dados: comFotos })],
       { type: 'application/json' });
@@ -346,6 +398,7 @@ async function telaInicial() {
       for (const reg of json.dados) {
         await DB.salvarChecklist(migrarChecklist(reg.checklist));
         for (const foto of reg.fotos || []) await DB.salvarFoto(foto);
+        for (const anexo of reg.anexos || []) await DB.salvarAnexo(anexo);
       }
       alert(`Backup restaurado: ${json.dados.length} checklist(s).`);
       rotear();
