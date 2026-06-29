@@ -106,6 +106,77 @@ function secaoCadastroRel(cl) {
     </table>`;
 }
 
+/* Há ao menos uma assinatura ainda não preenchida? */
+function temAssinaturaPendente(cl) {
+  const ass = cl.assinaturas || {};
+  return CHECKLIST_DEF.responsaveis.filter(c => c.assinatura).some(c => !imagemSegura(ass[c.id]));
+}
+
+/* Carrega o pdf.js sob demanda (fica no cache para uso offline) */
+let _pdfjs = null;
+function carregarPdfjs() {
+  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  if (_pdfjs) return _pdfjs;
+  _pdfjs = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'js/vendor/pdf.min.js';
+    s.onload = () => {
+      try { window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'js/vendor/pdf.worker.min.js'; } catch { /* ok */ }
+      resolve(window.pdfjsLib);
+    };
+    s.onerror = () => reject(new Error('Falha ao carregar pdf.js'));
+    document.head.appendChild(s);
+  });
+  return _pdfjs;
+}
+
+/* Converte cada página de um PDF (dataURL) em imagem JPEG (dataURL) */
+async function rasterizarPdf(lib, dataUrl) {
+  const base64 = String(dataUrl).split(',')[1] || '';
+  const bin = atob(base64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const doc = await lib.getDocument({ data: bytes, disableAutoFetch: true, disableStream: true }).promise;
+  const paginas = [];
+  const total = Math.min(doc.numPages, 30); // limite de segurança
+  for (let n = 1; n <= total; n++) {
+    const page = await doc.getPage(n);
+    const base = page.getViewport({ scale: 1 });
+    const escala = Math.min(2, 1200 / base.width);
+    const viewport = page.getViewport({ scale: escala });
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.ceil(viewport.width);
+    canvas.height = Math.ceil(viewport.height);
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+    paginas.push(canvas.toDataURL('image/jpeg', 0.82));
+  }
+  try { doc.destroy(); } catch { /* ok */ }
+  return paginas;
+}
+
+/* Seção de anexos PDF do relatório (páginas rasterizadas para imprimir junto) */
+async function renderAnexosRel(anexos) {
+  if (!anexos.length) return '';
+  let lib;
+  try { lib = await carregarPdfjs(); }
+  catch {
+    return `<div class="rel-secao rel-anexos"><h3>Anexos (PDF)</h3>
+      <p class="rel-num">Não foi possível carregar o leitor de PDF para incluir os anexos.</p></div>`;
+  }
+  const blocos = [];
+  for (const a of anexos) {
+    let paginas = [];
+    try { paginas = await rasterizarPdf(lib, a.dataUrl); } catch { paginas = []; }
+    const imgs = paginas.map((src, i) =>
+      `<img class="anexo-pagina" src="${src}" alt="${esc(a.nome)} — página ${i + 1}">`).join('');
+    blocos.push(`<div class="anexo-bloco">
+      <div class="anexo-titulo">📄 ${esc(a.nome)}</div>
+      ${imgs || `<p class="rel-num">Não foi possível renderizar este PDF.</p>`}
+    </div>`);
+  }
+  return `<div class="rel-secao rel-anexos"><h3>Anexos (PDF)</h3>${blocos.join('')}</div>`;
+}
+
 async function telaRelatorio(cl) {
   const idxRelatorio = ETAPAS.findIndex(e => e.id === 'relatorio');
   montarTopo(`Relatório · OS ${cl.obra.os || 'sem número'}`, null, `#/form/${cl.id}/${idxRelatorio}`);
@@ -113,6 +184,14 @@ async function telaRelatorio(cl) {
   const fotos = await DB.fotosDoChecklist(cl.id);
   const fotosPorItem = {};
   fotos.forEach(f => { (fotosPorItem[f.itemKey] = fotosPorItem[f.itemKey] || []).push(f); });
+
+  // Anexos PDF: rasterizados em imagens para saírem impressos ao final do relatório
+  const anexos = await DB.anexosDoChecklist(cl.id);
+  let anexosHtml = '';
+  if (anexos.length) {
+    $view().innerHTML = `<div class="rel-carregando">Preparando anexos em PDF para impressão…</div>`;
+    anexosHtml = await renderAnexosRel(anexos);
+  }
 
   const p = progressoChecklist(cl);
 
@@ -218,6 +297,7 @@ async function telaRelatorio(cl) {
       <div class="rel-secao">
         <h3>Assinaturas</h3>
         <div class="rel-assinaturas">${assinaturasRel(cl)}</div>
+        ${temAssinaturaPendente(cl) ? `<p class="rel-obs-assinatura">Observação: assinaturas pendentes poderão ser assinadas digitalmente no aplicativo.</p>` : ''}
       </div>
 
       <div class="rel-secao">
@@ -229,6 +309,8 @@ async function telaRelatorio(cl) {
         <h3>Evidências Fotográficas</h3>
         ${evidencias || `<p class="rel-num">Nenhuma foto anexada.</p>`}
       </div>
+
+      ${anexosHtml}
     </div>`;
 
   document.getElementById('btn-pdf').onclick = () => imprimirRelatorio(cl);

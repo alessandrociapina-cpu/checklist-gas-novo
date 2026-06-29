@@ -2,7 +2,7 @@
    online e continua funcionando 100% offline em campo). */
 'use strict';
 
-const CACHE = 'checklist-gas-novo-v12';
+const CACHE = 'checklist-gas-novo-v13';
 const ARQUIVOS = [
   './',
   './index.html',
@@ -14,6 +14,8 @@ const ARQUIVOS = [
   './js/assinatura.js',
   './js/relatorio.js',
   './js/app.js',
+  './js/vendor/pdf.min.js',
+  './js/vendor/pdf.worker.min.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/sabesp-logo.png'
