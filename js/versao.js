@@ -15,7 +15,7 @@ const HISTORICO_VERSOES = [
     versao: '1.12.0',
     data: '2026-06-23',
     itens: [
-      'Anexo de arquivos PDF (ao lado de Câmera/Galeria); os anexos são impressos ao final do relatório — contribuição da OLMS',
+      'Anexo de arquivos PDF (ao lado de Câmera/Galeria); os anexos são impressos ao final do relatório — contribuição da OLMS, Eng° Eder',
       'Fotos maiores na impressão do relatório (2 por linha)',
       'Aviso de que assinaturas pendentes podem ser assinadas digitalmente'
     ]
