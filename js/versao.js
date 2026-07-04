@@ -1,9 +1,17 @@
 /* Versão do aplicativo e histórico de atualizações (mais recente primeiro) */
 'use strict';
 
-const APP_VERSAO = '1.12.1';
+const APP_VERSAO = '1.13.0';
 
 const HISTORICO_VERSOES = [
+  {
+    versao: '1.13.0',
+    data: '2026-06-23',
+    itens: [
+      'Municípios Roseira e Lorena incluídos na lista',
+      'Unidade OVMP incluída na lista'
+    ]
+  },
   {
     versao: '1.12.1',
     data: '2026-06-23',
