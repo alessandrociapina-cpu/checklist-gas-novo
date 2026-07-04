@@ -1,9 +1,16 @@
 /* Versão do aplicativo e histórico de atualizações (mais recente primeiro) */
 'use strict';
 
-const APP_VERSAO = '1.13.0';
+const APP_VERSAO = '1.13.1';
 
 const HISTORICO_VERSOES = [
+  {
+    versao: '1.13.1',
+    data: '2026-07-04',
+    itens: [
+      'Atualização automática: o app passa a recarregar sozinho ao detectar uma nova versão'
+    ]
+  },
   {
     versao: '1.13.0',
     data: '2026-06-23',
