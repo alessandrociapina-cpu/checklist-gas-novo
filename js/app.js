@@ -797,6 +797,21 @@ window.addEventListener('hashchange', rotear);
 window.addEventListener('load', () => {
   rotear();
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    // Atualização automática: quando um novo service worker assume o controle,
+    // recarrega a página uma vez para aplicar a versão nova.
+    const controladorInicial = navigator.serviceWorker.controller;
+    let recarregando = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!controladorInicial || recarregando) return; // 1ª instalação não recarrega
+      recarregando = true;
+      location.reload();
+    });
+    // updateViaCache: 'none' garante que o sw.js seja buscado sempre da rede
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+      .then(reg => {
+        reg.update();
+        setInterval(() => reg.update(), 60 * 60 * 1000); // checa de hora em hora
+      })
+      .catch(() => {});
   }
 });
