@@ -76,5 +76,8 @@ dependências de runtime**; o `package.json` é só ferramenta de desenvolviment
   no relatório aparecem como "RESPOSTA 'NÃO' — SEM JUSTIFICATIVA").
 - Localização é capturada por GPS no formato decimal `lat / lon` e fica editável manualmente.
 - Dados são locais por aparelho; compartilhamento entre pessoas é via backup/restauração JSON.
+- Backup é gerado (`gerarBackup`) e lido (`lerRegistrosBackup`) **em partes**, um checklist por
+  vez — nunca `JSON.stringify`/`arquivo.text()` do backup inteiro (estoura o limite de string do
+  navegador com muitas fotos/PDFs). O formato do arquivo JSON não muda.
 - PDF do relatório usa a impressão nativa do navegador (sem bibliotecas).
 - Campos "Outros" (Unidade, Município, Tipo de Serviço) abrem campo de digitação manual.

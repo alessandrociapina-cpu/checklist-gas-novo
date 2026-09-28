@@ -228,8 +228,42 @@ function aguardarServidor(url, tentativas = 50) {
     checa(sanit.valido === 'data:image/png;base64,AAAABBBB', 'imagemSegura aceita dataURL válido');
     checa(!sanit.escapa.includes('"') && !sanit.escapa.includes('<'), 'esc escapa aspas e sinais');
 
+    // --- Backup em partes: exporta, relê em blocos e restaura ---
+    const dialogos = [];
+    page.on('dialog', d => { dialogos.push(d.message()); d.accept(); });
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#btn-exportar')]);
+    const textoBackup = require('fs').readFileSync(await dl.path(), 'utf8');
+    const backup = JSON.parse(textoBackup);
+    const regObra = backup.dados.find(r => r.checklist.obra.os === '123456');
+    checa(backup.app === 'checklist-gas-novo' && !!regObra, 'backup exportado é JSON válido com o checklist');
+    checa(regObra.fotos.length >= 1 && regObra.anexos.length >= 1, 'backup inclui fotos e anexos PDF');
+    checa(dl.suggestedFilename().startsWith('backup-checklist-gas-'), 'nome do arquivo de backup');
+
+    // leitura em blocos minúsculos (corta acentos/strings ao meio) = leitura integral
+    const lidoEmBlocos = await page.evaluate(async texto => {
+      const regs = [];
+      const arq = new File([texto], 'b.json');
+      await lerRegistrosBackup(arq, PREFIXO_BACKUP.length, r => { regs.push(r); }, 997);
+      return JSON.stringify(regs);
+    }, textoBackup);
+    checa(lidoEmBlocos === JSON.stringify(backup.dados), 'leitura em blocos idêntica à leitura integral');
+
+    const restaurar = async (nome, buffer) => {
+      dialogos.length = 0;
+      await page.setInputFiles('#arq-importar', { name: nome, mimeType: 'application/json', buffer });
+      for (let t = 0; t < 50 && !dialogos.length; t++) await page.waitForTimeout(100);
+      return dialogos[0] || '';
+    };
+    const msgOk = await restaurar('backup.json', Buffer.from(textoBackup));
+    checa(msgOk === `Backup restaurado: ${backup.dados.length} checklist(s).`, 'restauração do backup exportado');
+    const msgTrunc = await restaurar('cortado.json', Buffer.from(textoBackup.slice(0, Math.floor(textoBackup.length * 0.6))));
+    checa(!msgTrunc.startsWith('Backup restaurado'), 'arquivo truncado é recusado (' + msgTrunc + ')');
+    const formatado = JSON.stringify({ app: 'checklist-gas-novo', versao: 1,
+      dados: [{ checklist: { id: 'cl_fmt', obra: { os: 'FMT01', endereco: 'Rua X' } }, fotos: [] }] }, null, 2);
+    const msgFmt = await restaurar('formatado.json', Buffer.from(formatado));
+    checa(msgFmt === 'Backup restaurado: 1 checklist(s).', 'backup reformatado (leitura integral) ainda restaura');
+
     // --- Segurança: backup malicioso não injeta atributo/script (XSS via restauração) ---
-    page.on('dialog', d => d.accept());
     await page.evaluate(() => { window.__xss = 0; });
     const payload = {
       app: 'checklist-gas-novo', versao: 1,
