@@ -79,5 +79,8 @@ dependências de runtime**; o `package.json` é só ferramenta de desenvolviment
 - Backup é gerado (`gerarBackup`) e lido (`lerRegistrosBackup`) **em partes**, um checklist por
   vez — nunca `JSON.stringify`/`arquivo.text()` do backup inteiro (estoura o limite de string do
   navegador com muitas fotos/PDFs). O formato do arquivo JSON não muda.
+- Backup acima de `TAMANHO_PARTE` (20 MB, para caber em e-mail) sai em partes
+  `…-parte-X-de-N.json`; cada parte é um backup válido (um checklist grande se repete em várias
+  partes com pedaços das fotos/anexos) e a restauração aceita várias partes juntas.
 - PDF do relatório usa a impressão nativa do navegador (sem bibliotecas).
 - Campos "Outros" (Unidade, Município, Tipo de Serviço) abrem campo de digitação manual.

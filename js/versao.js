@@ -1,9 +1,17 @@
 /* Versão do aplicativo e histórico de atualizações (mais recente primeiro) */
 'use strict';
 
-const APP_VERSAO = '1.14.0';
+const APP_VERSAO = '1.15.0';
 
 const HISTORICO_VERSOES = [
+  {
+    versao: '1.15.0',
+    data: '2026-09-28',
+    itens: [
+      'Backup grande é dividido em partes de até 20 MB, para poder enviar por e-mail',
+      'Restauração aceita várias partes de uma vez e avisa se faltar alguma'
+    ]
+  },
   {
     versao: '1.14.0',
     data: '2026-09-28',

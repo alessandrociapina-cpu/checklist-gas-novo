@@ -248,12 +248,13 @@ function aguardarServidor(url, tentativas = 50) {
     }, textoBackup);
     checa(lidoEmBlocos === JSON.stringify(backup.dados), 'leitura em blocos idêntica à leitura integral');
 
-    const restaurar = async (nome, buffer) => {
+    const restaurarVarios = async arquivos => {
       dialogos.length = 0;
-      await page.setInputFiles('#arq-importar', { name: nome, mimeType: 'application/json', buffer });
+      await page.setInputFiles('#arq-importar', arquivos.map(([name, buffer]) => ({ name, mimeType: 'application/json', buffer })));
       for (let t = 0; t < 50 && !dialogos.length; t++) await page.waitForTimeout(100);
       return dialogos[0] || '';
     };
+    const restaurar = (nome, buffer) => restaurarVarios([[nome, buffer]]);
     const msgOk = await restaurar('backup.json', Buffer.from(textoBackup));
     checa(msgOk === `Backup restaurado: ${backup.dados.length} checklist(s).`, 'restauração do backup exportado');
     const msgTrunc = await restaurar('cortado.json', Buffer.from(textoBackup.slice(0, Math.floor(textoBackup.length * 0.6))));
@@ -262,6 +263,42 @@ function aguardarServidor(url, tentativas = 50) {
       dados: [{ checklist: { id: 'cl_fmt', obra: { os: 'FMT01', endereco: 'Rua X' } }, fotos: [] }] }, null, 2);
     const msgFmt = await restaurar('formatado.json', Buffer.from(formatado));
     checa(msgFmt === 'Backup restaurado: 1 checklist(s).', 'backup reformatado (leitura integral) ainda restaura');
+
+    // --- Backup dividido em partes (limite pequeno força várias partes) ---
+    const LIMITE = 4000;
+    const { partes, completo } = await page.evaluate(async lim => ({
+      partes: await Promise.all((await gerarBackup(lim)).map(v => v.text())),
+      completo: await (await gerarBackup())[0].text()
+    }), LIMITE);
+    const jsonPartes = partes.map(t => JSON.parse(t));
+    const nItens = j => j.dados.reduce((s, r) => s + (r.fotos || []).length + (r.anexos || []).length, 0);
+    const idsDe = (lista, tipo) => lista.flatMap(j => j.dados.flatMap(r => (r[tipo] || []).map(x => x.id))).sort().join('|');
+    const jsonCompleto = JSON.parse(completo);
+    checa(partes.length > 1, `backup dividido em ${partes.length} partes`);
+    checa(jsonPartes.every(j => j.app === 'checklist-gas-novo' && Array.isArray(j.dados)), 'cada parte é um backup válido');
+    checa(partes.every((t, i) => Buffer.byteLength(t) <= LIMITE || nItens(jsonPartes[i]) <= 1),
+      'nenhuma parte passa do limite (exceto item único maior que o limite)');
+    checa(idsDe(jsonPartes, 'fotos') === idsDe([jsonCompleto], 'fotos') &&
+          idsDe(jsonPartes, 'anexos') === idsDe([jsonCompleto], 'anexos'), 'partes juntas contêm todas as fotos e anexos');
+
+    // restaura todas as partes num banco vazio e confere que nada se perdeu
+    await page.evaluate(async () => { for (const c of await DB.listarChecklists()) await DB.excluirChecklist(c.id); });
+    const nomeParte = i => `backup-checklist-gas-2026-09-28-parte-${i + 1}-de-${partes.length}.json`;
+    const msgPartes = await restaurarVarios(partes.map((t, i) => [nomeParte(i), Buffer.from(t)]).reverse());
+    checa(msgPartes === `Backup restaurado: ${jsonCompleto.dados.length} checklist(s) a partir de ${partes.length} arquivos.`,
+      'restauração de todas as partes (em qualquer ordem)');
+    const restaurado = await page.evaluate(async () => {
+      const fotos = [], anexos = [];
+      for (const c of await DB.listarChecklists()) {
+        (await DB.fotosDoChecklist(c.id)).forEach(f => fotos.push(f.id));
+        (await DB.anexosDoChecklist(c.id)).forEach(a => anexos.push(a.id));
+      }
+      return { fotos: fotos.sort().join('|'), anexos: anexos.sort().join('|') };
+    });
+    checa(restaurado.fotos === idsDe([jsonCompleto], 'fotos') && restaurado.anexos === idsDe([jsonCompleto], 'anexos'),
+      'fotos e anexos restaurados das partes = backup completo');
+    const msgFalta = await restaurarVarios([[nomeParte(0), Buffer.from(partes[0])]]);
+    checa(msgFalta.includes('faltou selecionar a(s) parte(s) 2'), 'avisa quando falta alguma parte');
 
     // --- Segurança: backup malicioso não injeta atributo/script (XSS via restauração) ---
     await page.evaluate(() => { window.__xss = 0; });
