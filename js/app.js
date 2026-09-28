@@ -217,22 +217,64 @@ function ligarFotos(wrap, itemKey, aoMudar) {
    PDFs estourava o limite de tamanho do navegador. O formato do arquivo é o
    mesmo de sempre, então backups antigos e novos são intercambiáveis. */
 const PREFIXO_BACKUP = '{"app":"checklist-gas-novo","versao":1,"dados":[';
+// Tamanho máximo de cada parte: cabe em anexo de e-mail mesmo com o aumento de
+// ~33% da codificação (Gmail 25 MB, Microsoft 365 35 MB).
+const TAMANHO_PARTE = 20 * 1000 * 1000;
+const FOLGA_FECHAMENTO = 32; // bytes para fechar listas/registro/volume
 
-async function gerarBackup() {
-  const pedacos = [PREFIXO_BACKUP];
-  const todos = await DB.listarChecklists();
-  for (let i = 0; i < todos.length; i++) {
-    const cl = todos[i];
-    const partes = [(i ? ',' : '') + '{"checklist":' + JSON.stringify(cl) + ',"fotos":['];
-    (await DB.fotosDoChecklist(cl.id)).forEach((f, j) => partes.push((j ? ',' : '') + JSON.stringify(f)));
-    partes.push('],"anexos":[');
-    (await DB.anexosDoChecklist(cl.id)).forEach((a, j) => partes.push((j ? ',' : '') + JSON.stringify(a)));
-    partes.push(']}');
-    // um Blob por checklist: libera as strings da memória antes do próximo
-    pedacos.push(new Blob(partes));
+/* Gera o backup dividido em partes de até `limite` bytes. Cada parte é um backup
+   completo e válido; um checklist grande é repartido entre partes (cada uma leva
+   o checklist e um pedaço das fotos/anexos), e a restauração junta tudo. */
+async function gerarBackup(limite = TAMANHO_PARTE) {
+  const volumes = [];
+  let pedacos, tamanho, registros, itensVol;
+  // cada pedaço vira Blob na hora: tamanho exato em bytes e strings liberadas
+  const add = s => { const b = s instanceof Blob ? s : new Blob([s]); pedacos.push(b); tamanho += b.size; };
+  const abrirVolume = () => { pedacos = []; tamanho = 0; registros = 0; itensVol = 0; add(PREFIXO_BACKUP); };
+  const fecharVolume = () => { add(']}'); volumes.push(new Blob(pedacos, { type: 'application/json' })); };
+
+  abrirVolume();
+  for (const cl of await DB.listarChecklists()) {
+    const abertura = new Blob(['{"checklist":' + JSON.stringify(cl) + ',"fotos":[']);
+    let lista, nItens;
+    const abrirRegistro = () => {
+      if (registros) add(',');
+      add(abertura);
+      registros++;
+      lista = 'fotos';
+      nItens = 0;
+    };
+    const fecharRegistro = () => add(lista === 'fotos' ? '],"anexos":[]}' : ']}');
+
+    if (registros && tamanho + abertura.size + FOLGA_FECHAMENTO > limite) { fecharVolume(); abrirVolume(); }
+    abrirRegistro();
+
+    const itens = [
+      ...(await DB.fotosDoChecklist(cl.id)).map(o => ['fotos', o]),
+      ...(await DB.anexosDoChecklist(cl.id)).map(o => ['anexos', o])
+    ];
+    for (let i = 0; i < itens.length; i++) {
+      const [tipo, obj] = itens[i];
+      itens[i] = null; // libera o item já serializado
+      const item = new Blob([JSON.stringify(obj)]);
+      // não cabe: fecha esta parte e continua o mesmo checklist na próxima
+      // (um item maior que o limite vai sozinho numa parte)
+      if ((itensVol || registros > 1) && tamanho + item.size + FOLGA_FECHAMENTO > limite) {
+        fecharRegistro();
+        fecharVolume();
+        abrirVolume();
+        abrirRegistro();
+      }
+      if (tipo === 'anexos' && lista === 'fotos') { add('],"anexos":['); lista = 'anexos'; nItens = 0; }
+      if (nItens) add(',');
+      add(item);
+      nItens++;
+      itensVol++;
+    }
+    fecharRegistro();
   }
-  pedacos.push(']}');
-  return new Blob(pedacos, { type: 'application/json' });
+  fecharVolume();
+  return volumes;
 }
 
 function baixarArquivo(blob, nome) {
@@ -297,12 +339,25 @@ async function lerRegistrosBackup(arquivo, inicioBytes, aoRegistro, bloco = 4 * 
   if (!fim) throw new Error('incompleto');
 }
 
+/* Pelos nomes "…-parte-X-de-N", devolve as partes que não foram selecionadas */
+function partesFaltando(nomes) {
+  const achadas = nomes.map(n => /-parte-(\d+)-de-(\d+)/i.exec(n)).filter(Boolean);
+  if (!achadas.length) return [];
+  const total = Number(achadas[0][2]);
+  if (achadas.some(m => Number(m[2]) !== total)) return []; // backups diferentes misturados
+  const tem = new Set(achadas.map(m => Number(m[1])));
+  const faltam = [];
+  for (let i = 1; i <= total; i++) if (!tem.has(i)) faltam.push(i);
+  return faltam;
+}
+
 async function restaurarBackup(arquivo, progresso) {
   const salvar = async reg => {
-    await DB.salvarChecklist(migrarChecklist(reg.checklist));
+    const cl = migrarChecklist(reg.checklist);
+    await DB.salvarChecklist(cl);
     for (const foto of reg.fotos || []) await DB.salvarFoto(foto);
     for (const anexo of reg.anexos || []) await DB.salvarAnexo(anexo);
-    progresso.total++;
+    progresso.ids.add(cl.id); // o mesmo checklist pode vir em várias partes
   };
   const cabecalho = await arquivo.slice(0, PREFIXO_BACKUP.length).text();
   if (cabecalho === PREFIXO_BACKUP) {
@@ -403,7 +458,7 @@ async function telaInicial() {
       <button class="btn btn-secundario" id="btn-exportar">⬇ Backup</button>
       <button class="btn btn-secundario" id="btn-importar">⬆ Restaurar Backup</button>
     </div>
-    <input type="file" id="arq-importar" accept="application/json" hidden>
+    <input type="file" id="arq-importar" accept="application/json" multiple hidden>
     <button class="btn btn-primario btn-flutuante" id="btn-novo">＋ Novo checklist</button>`;
 
   function renderLista(filtro) {
@@ -478,8 +533,22 @@ async function telaInicial() {
     btnExportar.disabled = true;
     btnExportar.textContent = 'Gerando backup…';
     try {
-      const blob = await gerarBackup();
-      baixarArquivo(blob, `backup-checklist-gas-${new Date().toISOString().slice(0, 10)}.json`);
+      const partes = await gerarBackup();
+      const base = `backup-checklist-gas-${new Date().toISOString().slice(0, 10)}`;
+      if (partes.length === 1) {
+        baixarArquivo(partes[0], `${base}.json`);
+      } else {
+        const total = partes.reduce((s, p) => s + p.size, 0);
+        alert(`O backup tem ${formatarTamanho(total)} e será baixado em ${partes.length} arquivos ` +
+          `de até ${TAMANHO_PARTE / 1e6} MB (para caber em anexo de e-mail).\n\n` +
+          'Se o navegador perguntar, permita o download de vários arquivos.\n' +
+          'Para restaurar, selecione todas as partes juntas.');
+        for (let i = 0; i < partes.length; i++) {
+          btnExportar.textContent = `Baixando parte ${i + 1} de ${partes.length}…`;
+          baixarArquivo(partes[i], `${base}-parte-${i + 1}-de-${partes.length}.json`);
+          await new Promise(r => setTimeout(r, 800)); // downloads muito seguidos podem ser descartados
+        }
+      }
     } catch {
       alert('Não foi possível gerar o backup. Verifique se há espaço livre no aparelho/computador e tente novamente.');
     } finally {
@@ -491,24 +560,45 @@ async function telaInicial() {
   const btnImportar = document.getElementById('btn-importar');
   btnImportar.onclick = () => document.getElementById('arq-importar').click();
   document.getElementById('arq-importar').addEventListener('change', async e => {
-    const arq = e.target.files[0];
-    e.target.value = ''; // permite escolher o mesmo arquivo de novo
-    if (!arq) return;
+    const arquivos = [...e.target.files];
+    e.target.value = ''; // permite escolher os mesmos arquivos de novo
+    if (!arquivos.length) return;
     const rotulo = btnImportar.textContent;
     btnImportar.disabled = true;
-    btnImportar.textContent = `Restaurando (${formatarTamanho(arq.size)})…`;
-    const progresso = { total: 0 };
-    try {
-      await restaurarBackup(arq, progresso);
-      alert(`Backup restaurado: ${progresso.total} checklist(s).`);
-    } catch {
-      alert(progresso.total
-        ? `Backup incompleto ou corrompido: ${progresso.total} checklist(s) restaurado(s) antes do erro.`
-        : 'Arquivo de backup inválido.');
-    } finally {
-      btnImportar.disabled = false;
-      btnImportar.textContent = rotulo;
+    const progresso = { ids: new Set() };
+    const comErro = [];
+    for (let i = 0; i < arquivos.length; i++) {
+      const arq = arquivos[i];
+      btnImportar.textContent = arquivos.length > 1
+        ? `Restaurando ${i + 1} de ${arquivos.length} (${formatarTamanho(arq.size)})…`
+        : `Restaurando (${formatarTamanho(arq.size)})…`;
+      try {
+        await restaurarBackup(arq, progresso);
+      } catch {
+        comErro.push(arq.name);
+      }
     }
+    btnImportar.disabled = false;
+    btnImportar.textContent = rotulo;
+
+    const n = progresso.ids.size;
+    let msg;
+    if (arquivos.length === 1) {
+      msg = !comErro.length ? `Backup restaurado: ${n} checklist(s).`
+        : n ? `Backup incompleto ou corrompido: ${n} checklist(s) restaurado(s) antes do erro.`
+        : 'Arquivo de backup inválido.';
+    } else if (!comErro.length) {
+      msg = `Backup restaurado: ${n} checklist(s) a partir de ${arquivos.length} arquivos.`;
+    } else {
+      msg = `Restaurado(s) ${n} checklist(s). ${comErro.length} de ${arquivos.length} arquivos ` +
+        `inválidos ou incompletos:\n${comErro.join('\n')}`;
+    }
+    const faltam = partesFaltando(arquivos.map(a => a.name));
+    if (faltam.length) {
+      msg += `\n\nAtenção: faltou selecionar a(s) parte(s) ${faltam.join(', ')}. ` +
+        'Restaure-a(s) também para ter todas as fotos e anexos.';
+    }
+    alert(msg);
     rotear();
   });
 }
