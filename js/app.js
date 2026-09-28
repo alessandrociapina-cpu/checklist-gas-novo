@@ -212,6 +212,109 @@ function ligarFotos(wrap, itemKey, aoMudar) {
   });
 }
 
+/* ---------- backup em partes ---------- */
+/* O backup é montado e lido em pedaços: uma única string com todas as fotos e
+   PDFs estourava o limite de tamanho do navegador. O formato do arquivo é o
+   mesmo de sempre, então backups antigos e novos são intercambiáveis. */
+const PREFIXO_BACKUP = '{"app":"checklist-gas-novo","versao":1,"dados":[';
+
+async function gerarBackup() {
+  const pedacos = [PREFIXO_BACKUP];
+  const todos = await DB.listarChecklists();
+  for (let i = 0; i < todos.length; i++) {
+    const cl = todos[i];
+    const partes = [(i ? ',' : '') + '{"checklist":' + JSON.stringify(cl) + ',"fotos":['];
+    (await DB.fotosDoChecklist(cl.id)).forEach((f, j) => partes.push((j ? ',' : '') + JSON.stringify(f)));
+    partes.push('],"anexos":[');
+    (await DB.anexosDoChecklist(cl.id)).forEach((a, j) => partes.push((j ? ',' : '') + JSON.stringify(a)));
+    partes.push(']}');
+    // um Blob por checklist: libera as strings da memória antes do próximo
+    pedacos.push(new Blob(partes));
+  }
+  pedacos.push(']}');
+  return new Blob(pedacos, { type: 'application/json' });
+}
+
+function baixarArquivo(blob, nome) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nome;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  // revogar logo após o clique pode abortar o download de arquivos grandes
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+function formatarTamanho(bytes) {
+  return bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.ceil(bytes / 1024)} KB`;
+}
+
+/* Percorre o array "dados" do backup em blocos e entrega um registro por vez */
+async function lerRegistrosBackup(arquivo, inicioBytes, aoRegistro, bloco = 4 * 1024 * 1024) {
+  const decoder = new TextDecoder('utf-8');
+  let prof = 0, emString = false, escape = false, fim = false;
+  let partes = [];
+  for (let pos = inicioBytes; pos < arquivo.size && !fim; pos += bloco) {
+    const buf = await arquivo.slice(pos, pos + bloco).arrayBuffer();
+    const texto = decoder.decode(buf, { stream: pos + bloco < arquivo.size });
+    let inicio = prof > 0 ? 0 : -1;
+    for (let k = 0; k < texto.length; k++) {
+      const c = texto.charCodeAt(k);
+      if (emString) {
+        if (escape) escape = false;
+        else if (c === 92) escape = true;        // \
+        else if (c === 34) emString = false;     // "
+        continue;
+      }
+      if (c === 34) { emString = true; continue; }
+      if (c === 123 || c === 91) {               // { [
+        if (prof === 0) {
+          if (c !== 123) throw new Error('formato');
+          inicio = k;
+        }
+        prof++;
+      } else if (c === 125 || c === 93) {        // } ]
+        if (prof === 0) {                        // fim do array "dados"
+          if (c !== 93) throw new Error('formato');
+          fim = true;
+          break;
+        }
+        if (--prof === 0) {
+          partes.push(texto.slice(inicio, k + 1));
+          const reg = JSON.parse(partes.join(''));
+          partes = [];
+          inicio = -1;
+          await aoRegistro(reg);
+        }
+      } else if (prof === 0 && c !== 44 && c !== 32 && c !== 10 && c !== 13 && c !== 9) {
+        throw new Error('formato');              // só vírgula/espaço entre registros
+      }
+    }
+    if (prof > 0) partes.push(texto.slice(inicio));
+  }
+  if (!fim) throw new Error('incompleto');
+}
+
+async function restaurarBackup(arquivo, progresso) {
+  const salvar = async reg => {
+    await DB.salvarChecklist(migrarChecklist(reg.checklist));
+    for (const foto of reg.fotos || []) await DB.salvarFoto(foto);
+    for (const anexo of reg.anexos || []) await DB.salvarAnexo(anexo);
+    progresso.total++;
+  };
+  const cabecalho = await arquivo.slice(0, PREFIXO_BACKUP.length).text();
+  if (cabecalho === PREFIXO_BACKUP) {
+    await lerRegistrosBackup(arquivo, PREFIXO_BACKUP.length, salvar);
+  } else {
+    // JSON em outro formato (ex.: reformatado à mão): leitura integral
+    const json = JSON.parse(await arquivo.text());
+    if (json.app !== 'checklist-gas-novo' || !Array.isArray(json.dados)) throw new Error('formato');
+    for (const reg of json.dados) await salvar(reg);
+  }
+}
+
 /* ---------- roteador ---------- */
 async function rotear() {
   const hash = location.hash.replace(/^#\/?/, '');
@@ -369,42 +472,44 @@ async function telaInicial() {
     location.hash = `#/form/${cl.id}/0`;
   };
 
-  document.getElementById('btn-exportar').onclick = async () => {
-    const todos = await DB.listarChecklists();
-    const comFotos = [];
-    for (const cl of todos) {
-      comFotos.push({
-        checklist: cl,
-        fotos: await DB.fotosDoChecklist(cl.id),
-        anexos: await DB.anexosDoChecklist(cl.id)
-      });
+  const btnExportar = document.getElementById('btn-exportar');
+  btnExportar.onclick = async () => {
+    const rotulo = btnExportar.textContent;
+    btnExportar.disabled = true;
+    btnExportar.textContent = 'Gerando backup…';
+    try {
+      const blob = await gerarBackup();
+      baixarArquivo(blob, `backup-checklist-gas-${new Date().toISOString().slice(0, 10)}.json`);
+    } catch {
+      alert('Não foi possível gerar o backup. Verifique se há espaço livre no aparelho/computador e tente novamente.');
+    } finally {
+      btnExportar.disabled = false;
+      btnExportar.textContent = rotulo;
     }
-    const blob = new Blob([JSON.stringify({ app: 'checklist-gas-novo', versao: 1, dados: comFotos })],
-      { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `backup-checklist-gas-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
   };
 
-  document.getElementById('btn-importar').onclick = () => document.getElementById('arq-importar').click();
+  const btnImportar = document.getElementById('btn-importar');
+  btnImportar.onclick = () => document.getElementById('arq-importar').click();
   document.getElementById('arq-importar').addEventListener('change', async e => {
     const arq = e.target.files[0];
+    e.target.value = ''; // permite escolher o mesmo arquivo de novo
     if (!arq) return;
+    const rotulo = btnImportar.textContent;
+    btnImportar.disabled = true;
+    btnImportar.textContent = `Restaurando (${formatarTamanho(arq.size)})…`;
+    const progresso = { total: 0 };
     try {
-      const json = JSON.parse(await arq.text());
-      if (json.app !== 'checklist-gas-novo' || !Array.isArray(json.dados)) throw new Error('formato');
-      for (const reg of json.dados) {
-        await DB.salvarChecklist(migrarChecklist(reg.checklist));
-        for (const foto of reg.fotos || []) await DB.salvarFoto(foto);
-        for (const anexo of reg.anexos || []) await DB.salvarAnexo(anexo);
-      }
-      alert(`Backup restaurado: ${json.dados.length} checklist(s).`);
-      rotear();
+      await restaurarBackup(arq, progresso);
+      alert(`Backup restaurado: ${progresso.total} checklist(s).`);
     } catch {
-      alert('Arquivo de backup inválido.');
+      alert(progresso.total
+        ? `Backup incompleto ou corrompido: ${progresso.total} checklist(s) restaurado(s) antes do erro.`
+        : 'Arquivo de backup inválido.');
+    } finally {
+      btnImportar.disabled = false;
+      btnImportar.textContent = rotulo;
     }
+    rotear();
   });
 }
 

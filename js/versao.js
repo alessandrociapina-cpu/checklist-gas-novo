@@ -1,9 +1,17 @@
 /* Versão do aplicativo e histórico de atualizações (mais recente primeiro) */
 'use strict';
 
-const APP_VERSAO = '1.13.1';
+const APP_VERSAO = '1.14.0';
 
 const HISTORICO_VERSOES = [
+  {
+    versao: '1.14.0',
+    data: '2026-09-28',
+    itens: [
+      'Backup gerado e restaurado em partes: corrige o erro ao salvar/restaurar backups grandes (muitas fotos e PDFs)',
+      'Aviso claro quando o backup não pode ser gerado ou quando o arquivo restaurado está incompleto'
+    ]
+  },
   {
     versao: '1.13.1',
     data: '2026-07-04',
